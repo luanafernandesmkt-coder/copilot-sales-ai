@@ -502,18 +502,9 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--white);min-
       <div><div class="page-title">Configurações</div><div class="page-sub">Chaves de API para o copiloto ao vivo</div></div>
     </div>
     <div class="api-card">
-      <div style="font-size:14px;font-weight:600;color:var(--white);margin-bottom:4px">Chaves de API</div>
-      <div style="font-size:13px;color:var(--gray);margin-bottom:16px;line-height:1.5">Necessárias para o copiloto em tempo real. São salvas só no seu navegador.</div>
-      <div class="field" style="margin-bottom:12px">
-        <label>Claude API Key (Anthropic)</label>
-        <input type="password" id="cfg-claude" placeholder="sk-ant-...">
-      </div>
-      <div class="field" style="margin-bottom:16px">
-        <label>OpenAI API Key (Whisper)</label>
-        <input type="password" id="cfg-openai" placeholder="sk-...">
-      </div>
-      <button class="btn btn-primary" onclick="saveApiKeys()" style="width:100%;padding:12px">Salvar chaves</button>
-      <div id="cfg-msg" style="margin-top:10px;font-size:12px;color:var(--green);display:none">✓ Chaves salvas com sucesso!</div>
+      <div style="font-size:28px;margin-bottom:10px">✅</div>
+      <div style="font-size:14px;font-weight:600;color:var(--white);margin-bottom:6px">Copiloto configurado e pronto!</div>
+      <div style="font-size:13px;color:var(--gray);line-height:1.6">As chaves de IA já estão configuradas pelo administrador. Você não precisa fazer nenhuma configuração — é só usar o copiloto ao vivo!</div>
     </div>
     <div class="card">
       <div class="card-title" style="margin-bottom:10px">Como obter as chaves</div>
@@ -565,7 +556,7 @@ let isListening = false, mediaRecorder = null, audioStream = null;
 let audioChunks = [], fullTranscript = [], objections = [], sessionScores = {empatia:[],clareza:[],argum:[],fecha:[]};
 let objCount = 0, timerSecs = 0, timerInt = null, vizInt = null, processing = false;
 let copClient = '', copProduct = '', copContext = '';
-let claudeKey = '', openaiKey = '';
+
 let simPersona = null, simTurn = 0, simMaxTurns = 5;
 let simScores = {empatia:50,clareza:50,argum:40,fecha:30};
 
@@ -606,10 +597,7 @@ window.addEventListener('load', async () => {
   const hr = new Date().getHours();
   document.getElementById('greeting').textContent = hr < 12 ? `Bom dia, ${name.split(' ')[0]}!` : hr < 18 ? `Boa tarde, ${name.split(' ')[0]}!` : `Boa noite, ${name.split(' ')[0]}!`;
 
-  claudeKey = localStorage.getItem('cs_claude') || '';
-  openaiKey = localStorage.getItem('cs_openai') || '';
-  if (claudeKey) document.getElementById('cfg-claude').value = claudeKey;
-  if (openaiKey) document.getElementById('cfg-openai').value = openaiKey;
+
 
   await loadMyStats();
   await loadRecentReports();
@@ -680,10 +668,7 @@ function startCopiloto() {
   copClient = document.getElementById('cop-client').value.trim();
   copProduct = document.getElementById('cop-product').value.trim();
   copContext = document.getElementById('cop-context').value.trim();
-  claudeKey = document.getElementById('cfg-claude').value.trim();
-  openaiKey = document.getElementById('cfg-openai').value.trim();
   if (!copClient || !copProduct) { alert('Preencha o nome do cliente e o produto.'); return; }
-  if (!claudeKey || !openaiKey) { alert('Configure suas chaves de API em Configurações primeiro.'); setPage('config',document.querySelectorAll('.nav-item')[4]); return; }
   document.getElementById('cop-setup').style.display = 'none';
   document.getElementById('cop-live').style.display = 'block';
   document.getElementById('live-client-name').textContent = copClient + ' — ' + copProduct;
@@ -746,9 +731,9 @@ function startViz(stream) {
 async function processChunk(blob) {
   processing=true; setLiveStatus('processing','Transcrevendo...');
   try {
-    const fd=new FormData(); fd.append('file',blob,'audio.webm'); fd.append('model','whisper-1'); fd.append('language','pt');
-    const r=await fetch('https://api.openai.com/v1/audio/transcriptions',{method:'POST',headers:{'Authorization':'Bearer '+openaiKey},body:fd});
-    if(!r.ok) throw new Error('Whisper '+r.status);
+    const fd=new FormData(); fd.append('file',blob,'audio.webm');
+    const r=await fetch('/api/transcribe',{method:'POST',body:fd});
+    if(!r.ok) throw new Error('Transcribe '+r.status);
     const { text } = await r.json();
     if(!text||text.length<8){setLiveStatus('listening','Escutando...');processing=false;return;}
     document.getElementById('live-transcript').className='transcript-text';
@@ -766,9 +751,8 @@ async function getCopilotSuggestion(speech) {
 CONTEXTO: Cliente: ${copClient}, Produto: ${copProduct}, Contexto: ${copContext||'não informado'}
 Responda APENAS em JSON: {"sinal":"OBJECAO"|"COMPRA"|"NEUTRO","sugestao":"texto","pontos":["p1","p2"],"alerta":"texto","scores":{"empatia":0-100,"clareza":0-100,"argum":0-100,"fecha":0-100}}`;
   try {
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system,messages:[{role:'user',content:`Histórico:\n${hist}\n\nCliente disse: "${speech}"`}]})});
-    const d=await r.json();
-    const parsed=JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());
+    const r=await fetch('/api/suggest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({speech,clientName:copClient,productName:copProduct,context:copContext,history:fullTranscript})});
+    const parsed=await r.json();
     updateLiveUI(parsed,speech);
     setLiveStatus('listening','Escutando...');
   } catch(e) { setLiveStatus('listening','Escutando...'); }
@@ -822,12 +806,8 @@ async function endSession() {
 async function generateReport(final,e,c,a,f) {
   const transcript=fullTranscript.map(t=>`${t.role}: ${t.text}`).join('\n');
   try {
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,messages:[{role:'user',content:`Analise esta reunião de vendas e gere relatório em JSON.
-Cliente: ${copClient}, Produto: ${copProduct}, Duração: ${Math.floor(timerSecs/60)}min, Score: ${final}/100, Objeções: ${objections.length}
-Transcrição: ${transcript||'sem transcrição'}
-JSON: {"resumo":"2-3 frases","proximos_passos":["p1","p2","p3"]}`}]})});
-    const d=await r.json();
-    const parsed=JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());
+    const r=await fetch('/api/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientName:copClient,productName:copProduct,transcript,durationMinutes:Math.floor(timerSecs/60),score:final,objections:objections.length})});
+    const parsed=await r.json();
     document.getElementById('rep-summary').textContent=parsed.resumo;
     const ns=document.getElementById('rep-nextsteps');
     ns.innerHTML=parsed.proximos_passos.map((s,i)=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px"><span style="width:20px;height:20px;border-radius:50%;background:rgba(115,87,156,0.3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--purple-light);flex-shrink:0">${i+1}</span><span style="font-size:13px;color:var(--lgray);line-height:1.5">${s}</span></div>`).join('');
@@ -958,14 +938,6 @@ function resetSim() {
 }
 
 // ─── CONFIG ───
-function saveApiKeys() {
-  claudeKey=document.getElementById('cfg-claude').value.trim();
-  openaiKey=document.getElementById('cfg-openai').value.trim();
-  localStorage.setItem('cs_claude',claudeKey);
-  localStorage.setItem('cs_openai',openaiKey);
-  const msg=document.getElementById('cfg-msg'); msg.style.display='block';
-  setTimeout(()=>msg.style.display='none',2500);
-}
 
 // ─── NAV ───
 function setPage(page,el) {
