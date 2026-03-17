@@ -181,6 +181,9 @@ tr:hover td{background:var(--surface2);cursor:pointer}
   <div class="nav-item" onclick="setPage('ranking',this)"><span class="nav-icon">🏆</span> Ranking</div>
   <div class="nav-item" onclick="setPage('reports',this)"><span class="nav-icon">📋</span> Reports</div>
   <div class="nav-item" onclick="setPage('alertas',this)"><span class="nav-icon">🔔</span> Alertas</div>
+  <div class="nav-section">Ferramentas</div>
+  <div class="nav-item" onclick="setPage('copiloto',this)"><span class="nav-icon">🎙</span> Copiloto ao vivo</div>
+  <div class="nav-item" onclick="setPage('simulador',this)"><span class="nav-icon">🧠</span> Simulador</div>
   <div class="nav-section">Conta</div>
   <div class="nav-item" onclick="logout()"><span class="nav-icon">🚪</span> Sair</div>
   <div class="sidebar-footer">
@@ -309,6 +312,120 @@ tr:hover td{background:var(--surface2);cursor:pointer}
     </div>
     <div id="alertas-list" style="display:flex;flex-direction:column;gap:10px">
       <div style="color:var(--gray);text-align:center;padding:32px">Carregando alertas...</div>
+    </div>
+  </div>
+
+
+  <!-- COPILOTO -->
+  <div class="page" id="page-copiloto">
+    <div class="page-header">
+      <div><div class="page-title">Copiloto ao vivo</div><div class="page-sub">IA escuta a reunião e sugere respostas em tempo real</div></div>
+    </div>
+    <div id="cop-setup" class="card">
+      <div class="card-title" style="margin-bottom:16px">Configure a sessão</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="field"><label style="font-size:12px;font-weight:600;color:var(--lgray);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Nome do cliente</label><input type="text" id="cop-client" placeholder="Ex: Igreja Universal..." style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--white);font-family:Inter,sans-serif;outline:none;width:100%"></div>
+        <div class="field"><label style="font-size:12px;font-weight:600;color:var(--lgray);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Produto em pauta</label><input type="text" id="cop-product" placeholder="Ex: Sistema de som Shure..." style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--white);font-family:Inter,sans-serif;outline:none;width:100%"></div>
+      </div>
+      <div class="field" style="margin-bottom:16px"><label style="font-size:12px;font-weight:600;color:var(--lgray);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Contexto (opcional)</label><textarea id="cop-context" placeholder="Ex: Segunda reunião, cliente pediu desconto..." style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--white);font-family:Inter,sans-serif;outline:none;width:100%;min-height:70px;resize:vertical"></textarea></div>
+      <button onclick="startCopiloto()" style="background:linear-gradient(135deg,#73579C,#E8409A);border:none;color:white;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;width:100%;font-family:Inter,sans-serif">🎙 Iniciar sessão ao vivo</button>
+    </div>
+    <div id="cop-live" style="display:none">
+      <div style="background:rgba(10,8,16,0.9);border:1px solid var(--border);border-radius:16px;overflow:hidden">
+        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:13px;font-weight:600" id="live-client-name">Reunião em andamento</div>
+          <div style="display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;background:rgba(46,204,113,0.12);color:#80ffb0" id="live-status">
+            <div style="width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 1.2s infinite" id="live-dot"></div>
+            <span id="live-status-text">Pronto</span>
+          </div>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div id="live-alert" style="display:none;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600"><span id="live-alert-icon">⚠</span><span id="live-alert-text"></span></div>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:14px">
+            <div style="font-size:10px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">🎙 O que o cliente está dizendo</div>
+            <div style="font-size:13px;color:#555;font-style:italic;min-height:44px;line-height:1.6" id="live-transcript">Ative o microfone para começar...</div>
+          </div>
+          <div style="border:1px solid var(--border);border-radius:12px;padding:16px;background:rgba(115,87,156,0.05)" id="live-sug-box">
+            <div style="font-size:10px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">⚡ Sugestão da IA</div>
+            <div style="font-size:14px;color:#555;font-style:italic;font-weight:400;font-size:13px;line-height:1.65" id="live-suggestion">A sugestão aparecerá aqui assim que o cliente falar...</div>
+            <div id="live-tp" style="margin-top:10px;display:none;flex-direction:column;gap:6px"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+            <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--gray);margin-bottom:4px">Empatia</div><div style="font-size:20px;font-weight:700;color:#9B7EC8" id="ls-empatia">—</div></div>
+            <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--gray);margin-bottom:4px">Clareza</div><div style="font-size:20px;font-weight:700;color:#9B7EC8" id="ls-clareza">—</div></div>
+            <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--gray);margin-bottom:4px">Argum.</div><div style="font-size:20px;font-weight:700;color:#9B7EC8" id="ls-argum">—</div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;padding-top:4px">
+            <div style="display:flex;gap:10px">
+              <button id="btn-mic" onclick="toggleMic()" style="flex:1;background:linear-gradient(135deg,#73579C,#E8409A);border:none;color:white;border-radius:12px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">🎙 Ativar microfone</button>
+              <button onclick="endSession()" style="padding:14px 18px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--gray);cursor:pointer;font-size:13px;font-weight:600;font-family:Inter,sans-serif">Encerrar</button>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray)">
+              <span>Duração: <strong id="live-timer">00:00</strong></span>
+              <span>Objeções: <strong id="live-obj-count">0</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="cop-report" style="display:none;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div><div style="font-size:22px;font-weight:700">Relatório da reunião</div><div style="font-size:13px;color:var(--gray);margin-top:3px" id="rep-client-name"></div></div>
+        <button onclick="newSession()" style="background:linear-gradient(135deg,#73579C,#E8409A);border:none;color:white;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Nova sessão</button>
+      </div>
+      <div class="card" style="text-align:center;padding:28px">
+        <div style="font-size:42px;font-weight:800;background:linear-gradient(135deg,#9B7EC8,#E8409A);-webkit-background-clip:text;-webkit-text-fill-color:transparent" id="rep-score">—</div>
+        <div style="font-size:13px;color:var(--gray);margin-top:6px">Score geral da reunião</div>
+        <div style="margin-top:20px;max-width:360px;margin-left:auto;margin-right:auto">
+          <div class="score-bar-row"><span class="score-bar-label">Empatia</span><div class="score-bar-track"><div class="score-bar-fill" id="rb-empatia" style="width:0%"></div></div><span class="score-bar-num" id="rn-empatia">0</span></div>
+          <div class="score-bar-row"><span class="score-bar-label">Clareza</span><div class="score-bar-track"><div class="score-bar-fill" id="rb-clareza" style="width:0%"></div></div><span class="score-bar-num" id="rn-clareza">0</span></div>
+          <div class="score-bar-row"><span class="score-bar-label">Argumentação</span><div class="score-bar-track"><div class="score-bar-fill" id="rb-argum" style="width:0%"></div></div><span class="score-bar-num" id="rn-argum">0</span></div>
+          <div class="score-bar-row"><span class="score-bar-label">Fechamento</span><div class="score-bar-track"><div class="score-bar-fill" id="rb-fecha" style="width:0%"></div></div><span class="score-bar-num" id="rn-fecha">0</span></div>
+        </div>
+      </div>
+      <div class="card"><div style="font-size:14px;font-weight:600;margin-bottom:10px">Resumo da IA</div><div style="font-size:13px;color:var(--lgray);line-height:1.7" id="rep-summary">Gerando...</div></div>
+      <div class="card"><div style="font-size:14px;font-weight:600;margin-bottom:10px;color:#E8409A">Objeções detectadas</div><ul id="rep-objections" style="padding-left:16px;display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--lgray)"></ul></div>
+      <div class="card"><div style="font-size:14px;font-weight:600;margin-bottom:12px;color:var(--green)">Próximos passos</div><div id="rep-nextsteps" style="display:flex;flex-direction:column;gap:10px"></div></div>
+    </div>
+  </div>
+
+  <!-- SIMULADOR -->
+  <div class="page" id="page-simulador">
+    <div class="page-header">
+      <div><div class="page-title">Simulador de objeções</div><div class="page-sub">Treine antes da reunião real</div></div>
+      <span id="sim-round-badge" class="badge badge-purple">Escolha o cliente</span>
+    </div>
+    <div id="sim-setup-area">
+      <div class="card">
+        <div style="font-size:14px;font-weight:600;margin-bottom:14px">Escolha o tipo de cliente</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+          <div style="border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all 0.15s" class="persona-card" onclick="selectPersona(this,'ceo')"><div style="font-size:22px;margin-bottom:6px">😤</div><div style="font-size:12px;font-weight:600;color:var(--white)">Executivo sem tempo</div><div style="font-size:11px;color:var(--gray);margin-top:3px;line-height:1.4">Quer resultado direto. Vai cortar você se não for ao ponto.</div></div>
+          <div style="border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all 0.15s" class="persona-card" onclick="selectPersona(this,'price')"><div style="font-size:22px;margin-bottom:6px">💸</div><div style="font-size:12px;font-weight:600;color:var(--white)">Caçador de preço</div><div style="font-size:11px;color:var(--gray);margin-top:3px;line-height:1.4">Já tem 3 orçamentos. Usa o concorrente como escudo.</div></div>
+          <div style="border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all 0.15s" class="persona-card" onclick="selectPersona(this,'slow')"><div style="font-size:22px;margin-bottom:6px">🐢</div><div style="font-size:12px;font-weight:600;color:var(--white)">Eterno postergador</div><div style="font-size:11px;color:var(--gray);margin-top:3px;line-height:1.4">"Preciso pensar." Nunca decide sozinho.</div></div>
+        </div>
+        <button id="btn-start-sim" onclick="startSim()" disabled style="background:linear-gradient(135deg,#73579C,#E8409A);border:none;color:white;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;width:100%;font-family:Inter,sans-serif;opacity:0.4">Iniciar simulação</button>
+      </div>
+    </div>
+    <div id="sim-chat-area" style="display:none;flex-direction:column;gap:12px">
+      <div style="font-size:13px;font-weight:600" id="sim-persona-name">Simulando...</div>
+      <div>
+        <div style="display:flex;flex-direction:column;gap:10px;min-height:280px;max-height:360px;overflow-y:auto;padding:16px;background:rgba(255,255,255,0.02);border-radius:12px;border:1px solid var(--border)" id="sim-messages"></div>
+        <div style="padding:12px;background:rgba(10,8,16,0.6);border-radius:0 0 12px 12px;border:1px solid var(--border);border-top:none">
+          <div style="display:flex;gap:8px;align-items:flex-end">
+            <textarea id="sim-input" placeholder="Sua resposta para o cliente..." rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendSimMsg()}" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--white);font-family:Inter,sans-serif;resize:none;min-height:40px;outline:none"></textarea>
+            <button onclick="sendSimMsg()" style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#73579C,#E8409A);border:none;cursor:pointer;font-size:16px;color:white">→</button>
+          </div>
+          <div style="font-size:12px;color:var(--gray);margin-top:8px" id="sim-progress-text">Rodada 1 de 5</div>
+        </div>
+      </div>
+    </div>
+    <div id="sim-result-area" style="display:none;flex-direction:column;gap:16px">
+      <div class="card" style="text-align:center;padding:28px">
+        <div style="font-size:42px;font-weight:800;background:linear-gradient(135deg,#9B7EC8,#E8409A);-webkit-background-clip:text;-webkit-text-fill-color:transparent" id="sim-final-score">—</div>
+        <div style="font-size:13px;color:var(--gray);margin-top:6px">pontos</div>
+      </div>
+      <div class="card"><div style="font-size:14px;font-weight:600;margin-bottom:10px">Análise da IA</div><div style="font-size:13px;color:var(--lgray);line-height:1.7;white-space:pre-wrap" id="sim-feedback"></div></div>
+      <button onclick="resetSim()" style="background:linear-gradient(135deg,#73579C,#E8409A);border:none;color:white;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif">Treinar novamente</button>
     </div>
   </div>
 
@@ -685,6 +802,202 @@ function setEmpty() {
   document.getElementById('m-alerts').textContent = '0';
   document.getElementById('ranking-mini').innerHTML = '<div style="color:var(--gray);font-size:13px;padding:16px 0">Nenhum vendedor cadastrado ainda.</div>';
   document.getElementById('alerts-mini').innerHTML = '<div style="color:var(--gray);font-size:13px;padding:16px 0">Nenhum dado disponível.</div>';
+}
+
+
+// ─── COPILOTO ───
+let isListening=false,mediaRecorder=null,audioStream=null;
+let audioChunks=[],fullTranscript=[],objections=[],sessionScores={empatia:[],clareza:[],argum:[],fecha:[]};
+let objCount=0,timerSecs=0,timerInt=null,vizInt=null,processing=false;
+let copClient='',copProduct='',copContext='';
+
+function startCopiloto(){
+  copClient=document.getElementById('cop-client').value.trim();
+  copProduct=document.getElementById('cop-product').value.trim();
+  copContext=document.getElementById('cop-context').value.trim();
+  if(!copClient||!copProduct){alert('Preencha o nome do cliente e o produto.');return;}
+  document.getElementById('cop-setup').style.display='none';
+  document.getElementById('cop-live').style.display='block';
+  document.getElementById('live-client-name').textContent=copClient+' — '+copProduct;
+  fullTranscript=[];objections=[];sessionScores={empatia:[],clareza:[],argum:[],fecha:[]};objCount=0;timerSecs=0;processing=false;
+  timerInt=setInterval(()=>{timerSecs++;const m=String(Math.floor(timerSecs/60)).padStart(2,'0'),s=String(timerSecs%60).padStart(2,'0');document.getElementById('live-timer').textContent=m+':'+s;},1000);
+}
+
+async function toggleMic(){if(!isListening)await startMic();else stopMic();}
+
+async function startMic(){
+  try{
+    audioStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,sampleRate:16000}});
+    mediaRecorder=new MediaRecorder(audioStream,{mimeType:'audio/webm'});
+    audioChunks=[];
+    mediaRecorder.ondataavailable=e=>{if(e.data.size>0)audioChunks.push(e.data);};
+    mediaRecorder.onstop=async()=>{if(audioChunks.length&&!processing){const blob=new Blob(audioChunks,{type:'audio/webm'});audioChunks=[];await processChunk(blob);}};
+    mediaRecorder.start();isListening=true;startChunkLoop();
+    document.getElementById('live-status-text').textContent='Escutando...';
+    const btn=document.getElementById('btn-mic');
+    btn.style.background='rgba(231,76,60,0.2)';btn.style.border='1px solid rgba(231,76,60,0.4)';btn.style.color='#ff9090';btn.innerHTML='⏹ Pausar';
+    document.getElementById('live-transcript').style.color='var(--lgray)';
+    document.getElementById('live-transcript').style.fontStyle='normal';
+    document.getElementById('live-transcript').textContent='Escutando... fale normalmente.';
+  }catch(e){alert('Não foi possível acessar o microfone.');}
+}
+
+function stopMic(){
+  isListening=false;
+  if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();
+  if(audioStream)audioStream.getTracks().forEach(t=>t.stop());
+  document.getElementById('live-status-text').textContent='Pausado';
+  const btn=document.getElementById('btn-mic');
+  btn.style.background='linear-gradient(135deg,#73579C,#E8409A)';btn.style.border='none';btn.style.color='white';btn.innerHTML='🎙 Ativar microfone';
+}
+
+function startChunkLoop(){
+  setTimeout(()=>{
+    if(!isListening)return;
+    if(mediaRecorder&&mediaRecorder.state==='recording'){
+      mediaRecorder.stop();
+      setTimeout(()=>{if(isListening){audioChunks=[];mediaRecorder.start();startChunkLoop();}},200);
+    }
+  },6000);
+}
+
+async function processChunk(blob){
+  processing=true;
+  try{
+    const fd=new FormData();fd.append('file',blob,'audio.webm');
+    const r=await fetch('/api/transcribe',{method:'POST',body:fd});
+    if(!r.ok)throw new Error('Transcribe '+r.status);
+    const{text}=await r.json();
+    if(!text||text.length<8){processing=false;return;}
+    document.getElementById('live-transcript').textContent=text;
+    fullTranscript.push({role:'cliente',text});
+    await getCopilotSuggestion(text);
+  }catch(e){console.error(e);}
+  processing=false;
+}
+
+async function getCopilotSuggestion(speech){
+  try{
+    const r=await fetch('/api/suggest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({speech,clientName:copClient,productName:copProduct,context:copContext,history:fullTranscript})});
+    const parsed=await r.json();
+    const sug=document.getElementById('live-suggestion');
+    sug.style.color='var(--white)';sug.style.fontStyle='normal';sug.style.fontWeight='500';sug.textContent=parsed.sugestao;
+    document.getElementById('live-sug-box').style.borderColor='rgba(115,87,156,0.5)';
+    const tp=document.getElementById('live-tp');
+    if(parsed.pontos?.length){tp.style.display='flex';tp.innerHTML=parsed.pontos.map(p=>`<div style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--lgray);line-height:1.5"><div style="width:6px;height:6px;border-radius:50%;background:#9B7EC8;flex-shrink:0;margin-top:4px"></div><span>${p}</span></div>`).join('');}
+    const al=document.getElementById('live-alert');
+    if(parsed.sinal==='OBJECAO'){al.style.display='flex';al.style.background='rgba(231,76,60,0.1)';al.style.border='1px solid rgba(231,76,60,0.25)';al.style.color='#ff9090';document.getElementById('live-alert-icon').textContent='⚠';document.getElementById('live-alert-text').textContent=parsed.alerta||'Objeção detectada';objCount++;document.getElementById('live-obj-count').textContent=objCount;objections.push(speech);}
+    else if(parsed.sinal==='COMPRA'){al.style.display='flex';al.style.background='rgba(46,204,113,0.1)';al.style.border='1px solid rgba(46,204,113,0.25)';al.style.color='#80ffb0';document.getElementById('live-alert-icon').textContent='✓';document.getElementById('live-alert-text').textContent=parsed.alerta||'Sinal de compra!';}
+    else{al.style.display='none';}
+    if(parsed.scores){['empatia','clareza','argum'].forEach(k=>{sessionScores[k].push(parsed.scores[k]||0);document.getElementById('ls-'+k).textContent=parsed.scores[k]||'—';});sessionScores.fecha.push(parsed.scores.fecha||0);}
+    fullTranscript.push({role:'ia',text:parsed.sugestao});
+  }catch(e){console.error(e);}
+}
+
+async function endSession(){
+  if(!confirm('Encerrar a sessão e ver o relatório?'))return;
+  stopMic();clearInterval(timerInt);
+  document.getElementById('cop-live').style.display='none';
+  document.getElementById('cop-report').style.display='flex';
+  const avg=arr=>arr.length?Math.round(arr.reduce((a,b)=>a+b,0)/arr.length):50;
+  const e=avg(sessionScores.empatia),c=avg(sessionScores.clareza),a=avg(sessionScores.argum),f=avg(sessionScores.fecha);
+  const final=Math.round((e+c+a+f)/4);
+  document.getElementById('rep-score').textContent=final;
+  document.getElementById('rep-client-name').textContent=copClient+' — '+copProduct;
+  setTimeout(()=>{['empatia','clareza','argum','fecha'].forEach((k,i)=>{const v=[e,c,a,f][i];document.getElementById('rb-'+k).style.width=v+'%';document.getElementById('rn-'+k).textContent=v;});},300);
+  const transcript=fullTranscript.map(t=>`${t.role}: ${t.text}`).join('\n');
+  try{
+    const r=await fetch('/api/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientName:copClient,productName:copProduct,transcript,durationMinutes:Math.floor(timerSecs/60),score:final,objections:objections.length})});
+    const parsed=await r.json();
+    document.getElementById('rep-summary').textContent=parsed.resumo;
+    document.getElementById('rep-nextsteps').innerHTML=parsed.proximos_passos.map((s,i)=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px"><span style="width:20px;height:20px;border-radius:50%;background:rgba(115,87,156,0.3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#9B7EC8;flex-shrink:0">${i+1}</span><span style="font-size:13px;color:var(--lgray);line-height:1.5">${s}</span></div>`).join('');
+    document.getElementById('rep-objections').innerHTML=objections.length?objections.map(o=>`<li style="padding:4px 0">${o}</li>`).join(''):'<li>Nenhuma objeção detectada.</li>';
+    await sb.from('sessions').insert({vendor_id:currentUser.id,company_id:userProfile?.company_id,client_name:copClient,product_name:copProduct,context:copContext,transcript,duration_seconds:timerSecs,objection_count:objections.length,score_empatia:e,score_clareza:c,score_argum:a,score_fecha:f,score_final:final,summary:parsed.resumo,next_steps:parsed.proximos_passos,objections_detected:objections});
+  }catch(err){document.getElementById('rep-summary').textContent='Reunião encerrada.';}
+}
+
+function newSession(){
+  document.getElementById('cop-report').style.display='none';
+  document.getElementById('cop-setup').style.display='block';
+  document.getElementById('cop-client').value='';document.getElementById('cop-product').value='';document.getElementById('cop-context').value='';
+  document.getElementById('live-alert').style.display='none';
+  document.getElementById('live-tp').style.display='none';
+  ['empatia','clareza','argum'].forEach(k=>document.getElementById('ls-'+k).textContent='—');
+}
+
+// ─── SIMULADOR ───
+let simPersona2=null,simTurn2=0,simScores2={empatia:40,clareza:35,argum:30,fecha:20};
+const personas2={
+  ceo:{name:'Ricardo Almeida — CEO',opens:['Tem 5 minutos. Me convença.','Por que vocês são diferentes?'],objs:['Preço muito acima do budget.','Meu financeiro vai questionar o ROI.','Já fui mal atendido por distribuidor.','Vocês são distribuidores, não fabricante.']},
+  price:{name:'Marcos — Comprador',opens:['Recebi proposta 22% mais barata.','Por que pagaria mais?'],objs:['Concorrente deu mesma spec por menos.','Desconto de 15% ou fecho com outro.','Não vejo diferença técnica.','Me manda tabela de preços.']},
+  slow:{name:'Ana Lúcia — Coordenadora',opens:['Preciso apresentar para diretoria.','Ainda estou levantando, sem prazo.'],objs:['Vou pensar e te retorno.','Chefe está de viagem.','Outras prioridades agora.','Preciso de mais orçamentos.']}
+};
+
+function selectPersona(el,key){
+  document.querySelectorAll('.persona-card').forEach(c=>{c.style.borderColor='var(--border)';c.style.background='rgba(255,255,255,0.02)';});
+  el.style.borderColor='#73579C';el.style.background='rgba(115,87,156,0.12)';
+  simPersona2=key;
+  const btn=document.getElementById('btn-start-sim');btn.disabled=false;btn.style.opacity='1';
+}
+
+function startSim(){
+  if(!simPersona2)return;
+  const p=personas2[simPersona2];
+  document.getElementById('sim-setup-area').style.display='none';
+  document.getElementById('sim-chat-area').style.display='flex';
+  document.getElementById('sim-persona-name').textContent=p.name;
+  document.getElementById('sim-result-area').style.display='none';
+  simTurn2=0;simScores2={empatia:40,clareza:35,argum:30,fecha:20};
+  document.getElementById('sim-messages').innerHTML='';
+  setTimeout(()=>{const open=p.opens[Math.floor(Math.random()*p.opens.length)];addSimMsg2('client',open);},600);
+}
+
+async function sendSimMsg(){
+  const input=document.getElementById('sim-input');
+  const text=input.value.trim();if(!text)return;
+  input.value='';simTurn2++;
+  const{feedback,good}=evalSim(text);
+  addSimMsg2('user',text,feedback,good);
+  if(simTurn2>=5){setTimeout(endSim2,800);return;}
+  const p=personas2[simPersona2];
+  setTimeout(()=>{addSimMsg2('client',p.objs[Math.floor(Math.random()*p.objs.length)]);document.getElementById('sim-progress-text').textContent=`Rodada ${simTurn2+1} de 5`;},1000);
+}
+
+function evalSim(text){
+  const hasEmpathy=/entendo|compreendo|faz sentido|claro|razão/i.test(text);
+  const hasConcrete=/caso|cliente|resultado|garantia|\d+/i.test(text);
+  const hasCTA=/posso|quando|agenda|próximo|fechar|\?/i.test(text);
+  if(text.length<60)return{feedback:'Resposta muito curta.',good:false};
+  if(hasEmpathy&&hasConcrete&&hasCTA)return{feedback:'Boa resposta — validou, argumentou e propôs próximo passo.',good:true};
+  if(hasEmpathy&&!hasCTA)return{feedback:'Boa empatia, mas faltou propor um próximo passo.',good:false};
+  return{feedback:'Ok. Traga um exemplo concreto para aumentar credibilidade.',good:false};
+}
+
+function addSimMsg2(type,text,feedback,good){
+  const msgs=document.getElementById('sim-messages');
+  const div=document.createElement('div');
+  div.style.cssText=`display:flex;flex-direction:column;max-width:85%;align-self:${type==='client'?'flex-start':'flex-end'}`;
+  div.innerHTML=`<div style="font-size:10px;color:var(--gray);margin-bottom:4px;${type==='user'?'text-align:right':''}">${type==='client'?document.getElementById('sim-persona-name').textContent:'Você'}</div><div style="padding:10px 14px;border-radius:${type==='client'?'4px 12px 12px 12px':'12px 4px 12px 12px'};font-size:13px;line-height:1.55;background:${type==='client'?'rgba(255,255,255,0.06)':'linear-gradient(135deg,#73579C,#E8409A)'};color:${type==='client'?'var(--lgray)':'white'};border:${type==='client'?'1px solid var(--border)':'none'}">${text}</div>`;
+  msgs.appendChild(div);
+  if(feedback){const fb=document.createElement('div');fb.style.cssText=`align-self:flex-end;max-width:92%;padding:8px 12px;border-radius:8px;font-size:11px;line-height:1.5;background:${good?'rgba(46,204,113,0.1)':'rgba(243,156,18,0.1)'};border:1px solid ${good?'rgba(46,204,113,0.2)':'rgba(243,156,18,0.2)'};color:${good?'#80ffb0':'#ffd080'};margin-top:4px`;fb.textContent=(good?'✓ ':'⚑ ')+feedback;msgs.appendChild(fb);}
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function endSim2(){
+  document.getElementById('sim-chat-area').style.display='none';
+  document.getElementById('sim-result-area').style.display='flex';
+  const avg=Math.round(Object.values(simScores2).reduce((a,b)=>a+b,0)/4);
+  document.getElementById('sim-final-score').textContent=avg;
+  const feedbacks={low:'Continue praticando. Foco em: validar a objeção, argumentar com dados concretos e propor próximo passo.',mid:'Boa base! Melhore a condução do fechamento — quando o cliente abrir, proponha um próximo passo específico.',high:'Excelente! Você combinou empatia, argumentação e fechamento. Esse é o padrão dos melhores vendedores.'};
+  document.getElementById('sim-feedback').textContent=feedbacks[avg<50?'low':avg<72?'mid':'high'];
+}
+
+function resetSim(){
+  document.getElementById('sim-result-area').style.display='none';
+  document.getElementById('sim-setup-area').style.display='block';
+  document.querySelectorAll('.persona-card').forEach(c=>{c.style.borderColor='var(--border)';c.style.background='rgba(255,255,255,0.02)';});
+  simPersona2=null;
+  const btn=document.getElementById('btn-start-sim');btn.disabled=true;btn.style.opacity='0.4';
 }
 
 async function logout() { await sb.auth.signOut(); window.location.href = 'index.html'; }
