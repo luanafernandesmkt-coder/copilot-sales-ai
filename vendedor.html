@@ -593,7 +593,7 @@ const SUPABASE_KEY = 'sb_publishable_PvDRevOVtSyUgVQnaOAkyw_eLFeXMCQ';
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let currentUser = null, userProfile = null;
+let currentUser = null, userProfile = null, companyData = null;
 let isListening = false, mediaRecorder = null, audioStream = null;
 let audioChunks = [], fullTranscript = [], objections = [], sessionScores = {empatia:[],clareza:[],argum:[],fecha:[]};
 let objCount = 0, timerSecs = 0, timerInt = null, vizInt = null, processing = false;
@@ -633,7 +633,7 @@ window.addEventListener('load', async () => {
   userProfile = profile;
   const name = profile?.full_name || currentUser.email.split('@')[0];
   document.getElementById('user-name').textContent = name;
-  document.getElementById('user-initials').textContent = name.substring(0,2).toUpperCase();
+  document.getElementById('user-initials-text').textContent = name.substring(0,2).toUpperCase();
   document.getElementById('company-name').textContent = profile?.companies?.name || '';
 
   const hr = new Date().getHours();
@@ -643,6 +643,7 @@ window.addEventListener('load', async () => {
 
   await loadMyStats();
   await loadCompanyLogo();
+  await loadCompanyData();
   
   // Load avatar if exists
   if (userProfile?.avatar_url) applyAvatar(userProfile.avatar_url + '?t=' + Date.now());
@@ -797,7 +798,18 @@ async function getCopilotSuggestion(speech) {
 CONTEXTO: Cliente: ${copClient}, Produto: ${copProduct}, Contexto: ${copContext||'não informado'}
 Responda APENAS em JSON: {"sinal":"OBJECAO"|"COMPRA"|"NEUTRO","sugestao":"texto","pontos":["p1","p2"],"alerta":"texto","scores":{"empatia":0-100,"clareza":0-100,"argum":0-100,"fecha":0-100}}`;
   try {
-    const r=await fetch('/api/suggest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({speech,clientName:copClient,productName:copProduct,context:copContext,history:fullTranscript})});
+    const r=await fetch('/api/suggest',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      speech,
+      clientName: copClient,
+      productName: copProduct,
+      context: copContext,
+      history: fullTranscript,
+      companyName: companyData?.name,
+      companySector: companyData?.sector,
+      companyTone: companyData?.tone,
+      companyProducts: companyData?.products || [],
+      companyObjections: companyData?.objections || []
+    })});
     const parsed=await r.json();
     updateLiveUI(parsed,speech);
     setLiveStatus('listening','Escutando...');
@@ -852,7 +864,19 @@ async function endSession() {
 async function generateReport(final,e,c,a,f) {
   const transcript=fullTranscript.map(t=>`${t.role}: ${t.text}`).join('\n');
   try {
-    const r=await fetch('/api/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({clientName:copClient,productName:copProduct,transcript,durationMinutes:Math.floor(timerSecs/60),score:final,objections:objections.length})});
+    const r=await fetch('/api/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      clientName: copClient,
+      productName: copProduct,
+      transcript,
+      durationMinutes: Math.floor(timerSecs/60),
+      score: final,
+      objections: objections.length,
+      companyName: companyData?.name,
+      companySector: companyData?.sector,
+      companyTone: companyData?.tone,
+      companyProducts: companyData?.products || [],
+      companyObjections: companyData?.objections || []
+    })});
     const parsed=await r.json();
     document.getElementById('rep-summary').textContent=parsed.resumo;
     const ns=document.getElementById('rep-nextsteps');
@@ -880,6 +904,85 @@ function newSession() {
 }
 
 // ─── SIMULADOR ───
+async function generateSimMessage(type, persona, vendedorResponse) {
+  const history = [];
+  document.querySelectorAll('.sim-msg').forEach(msg => {
+    const isClient = msg.classList.contains('client');
+    const bubble = msg.querySelector('.sim-bubble');
+    if (bubble && !bubble.querySelector('.typing-dots')) {
+      history.push({ role: isClient ? 'cliente' : 'vendedor', text: bubble.textContent });
+    }
+  });
+
+  const historyText = history.slice(-6).map(h => `${h.role.toUpperCase()}: ${h.text}`).join('
+');
+
+  const productsCtx = companyData?.products?.length ? `Produtos que o vendedor vende: ${companyData.products.join(', ')}` : '';
+  const objectionsCtx = companyData?.objections?.length ? `Objeções típicas desse mercado: ${companyData.objections.join(', ')}` : '';
+
+  const prompt = type === 'opening' 
+    ? `Você é um cliente simulado com o perfil: ${persona.name}. 
+       Descrição do perfil: ${persona.desc || ''}
+       
+       CONTEXTO DA EMPRESA QUE ESTÁ SENDO VENDIDA:
+       - Empresa: ${companyData?.name || 'não informado'}
+       - Setor: ${companyData?.sector || 'não informado'}
+       ${productsCtx}
+       
+       Inicie a conversa de vendas com uma frase realista e desafiadora para esse perfil.
+       Seja específico ao setor e produtos da empresa. Máximo 2 frases. Responda APENAS a fala do cliente, sem explicações.`
+    : `Você é um cliente simulado com o perfil: ${persona.name}.
+       
+       CONTEXTO DA EMPRESA QUE ESTÁ SENDO VENDIDA:
+       - Empresa: ${companyData?.name || 'não informado'}
+       - Setor: ${companyData?.sector || 'não informado'}
+       ${productsCtx}
+       ${objectionsCtx}
+       
+       HISTÓRICO DA SIMULAÇÃO:
+       ${historyText}
+       
+       O vendedor acabou de dizer: "${vendedorResponse}"
+       
+       Reaja de forma realista e desafiadora para esse perfil de cliente. 
+       Seja específico, use objeções reais desse mercado.
+       Máximo 2 frases. Responda APENAS a fala do cliente, sem explicações.`;
+
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': 'placeholder'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 200,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+
+  // Use /api/suggest as proxy since we can't expose API key
+  const simRes = await fetch('/api/sim-message', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type, 
+      personaName: persona.name,
+      personaDesc: persona.desc || '',
+      companyName: companyData?.name,
+      companySector: companyData?.sector,
+      companyProducts: companyData?.products || [],
+      companyObjections: companyData?.objections || [],
+      history: historyText,
+      vendedorResponse
+    })
+  });
+
+  if (!simRes.ok) throw new Error('API error');
+  const data = await simRes.json();
+  return data.message;
+}
+
 function selectPersona(el, key) {
   document.querySelectorAll('.persona-card').forEach(c=>c.classList.remove('selected'));
   el.classList.add('selected'); simPersona=key;
@@ -887,7 +990,7 @@ function selectPersona(el, key) {
   btn.disabled=false; btn.style.opacity='1';
 }
 
-function startSim() {
+async function startSim() {
   if(!simPersona) return;
   const p=personas[simPersona];
   document.getElementById('sim-setup-area').style.display='none';
@@ -899,10 +1002,23 @@ function startSim() {
   setSimHints(p.hints);
   document.getElementById('sim-round-badge').innerHTML='<span class="badge badge-purple">Simulando</span>';
   updateSimScores();
-  setTimeout(()=>{
-    const open=p.opens[Math.floor(Math.random()*p.opens.length)];
-    addSimMsg('client',open); updateSimTurn();
-  },600);
+  
+  // Generate AI opening based on company context
+  const loadingMsg = document.createElement('div');
+  loadingMsg.className = 'sim-msg client';
+  loadingMsg.innerHTML = '<div class="sim-label">' + p.name + '</div><div class="sim-bubble"><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>';
+  document.getElementById('sim-messages').appendChild(loadingMsg);
+
+  try {
+    const aiOpen = await generateSimMessage('opening', p, null);
+    loadingMsg.remove();
+    addSimMsg('client', aiOpen);
+  } catch(e) {
+    loadingMsg.remove();
+    const fallback = p.opens[Math.floor(Math.random()*p.opens.length)];
+    addSimMsg('client', fallback);
+  }
+  updateSimTurn();
 }
 
 async function sendSimMsg() {
@@ -914,9 +1030,25 @@ async function sendSimMsg() {
   Object.keys(delta).forEach(k=>{ simScores[k]=Math.min(100,Math.max(0,simScores[k]+delta[k])); });
   updateSimScores();
   if(simTurn>=simMaxTurns){ setTimeout(endSim,800); return; }
+  
   const p=personas[simPersona];
-  const objIdx=Math.floor(Math.random()*p.objs.length);
-  setTimeout(()=>{ addSimMsg('client',p.objs[objIdx]); updateSimTurn(); },1000+Math.random()*600);
+  
+  // Show typing indicator
+  const loadingMsg = document.createElement('div');
+  loadingMsg.className = 'sim-msg client';
+  loadingMsg.innerHTML = '<div class="sim-label">' + p.name + '</div><div class="sim-bubble"><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>';
+  document.getElementById('sim-messages').appendChild(loadingMsg);
+  document.getElementById('sim-messages').scrollTop = 999999;
+
+  try {
+    const aiResponse = await generateSimMessage('objection', p, text);
+    loadingMsg.remove();
+    addSimMsg('client', aiResponse);
+  } catch(e) {
+    loadingMsg.remove();
+    addSimMsg('client', p.objs[Math.floor(Math.random()*p.objs.length)]);
+  }
+  updateSimTurn();
 }
 
 function evaluateSimResponse(text) {
@@ -999,10 +1131,18 @@ function setPage(page,el) {
 function applyAvatar(url) {
   if (!url) return;
   const container = document.getElementById('user-initials');
-  const txt = document.getElementById('user-initials-text');
   if (!container) return;
-  // Replace content with image directly
-  container.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" onerror="this.parentElement.innerHTML='<span id=user-initials-text>V</span>'">`;
+  const initials = (userProfile?.full_name || currentUser?.email || 'V').substring(0,2).toUpperCase();
+  container.innerHTML = '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" onerror="this.parentElement.innerHTML='<span id=user-initials-text>' + initials + '</span>'">';
+}
+
+async function loadCompanyData() {
+  if (!userProfile?.company_id) return;
+  const { data } = await sb.from('companies')
+    .select('name, sector, tone, products, objections')
+    .eq('id', userProfile.company_id)
+    .single();
+  if (data) companyData = data;
 }
 
 async function logout(){ await sb.auth.signOut(); window.location.href='index.html'; }
