@@ -7,7 +7,16 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { clientName, productName, transcript, durationMinutes, score, objections } = req.body;
+    const { 
+      clientName, productName, transcript, durationMinutes, score, objections,
+      companyName, companySector, companyProducts, companyObjections, companyTone
+    } = req.body;
+
+    const productsContext = companyProducts?.length 
+      ? `Produtos da empresa: ${companyProducts.join(', ')}` : '';
+    
+    const objectionsContext = companyObjections?.length 
+      ? `Objeções comuns: ${companyObjections.join(', ')}` : '';
 
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -18,10 +27,36 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 800,
+        max_tokens: 1000,
         messages: [{
           role: 'user',
-          content: `Analise essa reunião de vendas e gere um relatório executivo em JSON.\n\nCliente: ${clientName}\nProduto: ${productName}\nDuração: ${durationMinutes} minutos\nScore final: ${score}/100\nObjeções detectadas: ${objections || 0}\n\nTranscrição:\n${transcript || 'Reunião sem transcrição gravada.'}\n\nResponda SOMENTE em JSON válido:\n{\n  "resumo": "2-3 frases resumindo como foi a reunião",\n  "proximos_passos": ["passo 1", "passo 2", "passo 3"]\n}`
+          content: `Você é um analista de vendas especialista. Analise esta reunião e gere um relatório executivo preciso.
+
+CONTEXTO DA EMPRESA:
+- Empresa vendedora: ${companyName || 'não informado'}
+- Setor: ${companySector || 'não informado'}
+${productsContext}
+${objectionsContext}
+
+DADOS DA REUNIÃO:
+- Cliente/Prospect: ${clientName}
+- Produto discutido: ${productName}
+- Duração: ${durationMinutes} minutos
+- Score final: ${score}/100
+- Objeções detectadas: ${objections || 0}
+
+TRANSCRIÇÃO COMPLETA:
+${transcript || 'Reunião sem transcrição gravada.'}
+
+Analise profundamente a transcrição e responda SOMENTE em JSON válido:
+{
+  "resumo": "análise executiva de 3-4 frases: como foi a reunião, qual foi o nível de interesse do cliente, quais foram os momentos críticos",
+  "proximos_passos": [
+    "próximo passo específico e acionável 1",
+    "próximo passo específico e acionável 2", 
+    "próximo passo específico e acionável 3"
+  ]
+}`
         }]
       })
     });
