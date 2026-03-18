@@ -1156,13 +1156,17 @@ async function saveProfile() {
     }
 
     // Update sidebar
-    document.getElementById('user-name').textContent = name;
-    document.getElementById('user-initials-text').textContent = name.substring(0,2).toUpperCase();
+    const nameEl = document.getElementById('user-name');
+    const initialsEl = document.getElementById('user-initials-text');
+    const avatarImgEl = document.getElementById('user-avatar-img');
 
-    if (avatarUrl) {
-      document.getElementById('user-avatar-img').src = avatarUrl + '?t=' + Date.now();
-      document.getElementById('user-avatar-img').style.display = 'block';
-      document.getElementById('user-initials-text').style.display = 'none';
+    if (nameEl) nameEl.textContent = name;
+    if (initialsEl) initialsEl.textContent = name.substring(0,2).toUpperCase();
+
+    if (avatarUrl && avatarImgEl) {
+      avatarImgEl.src = avatarUrl + '?t=' + Date.now();
+      avatarImgEl.style.display = 'block';
+      if (initialsEl) initialsEl.style.display = 'none';
     }
 
     userProfile = { ...userProfile, full_name: name, avatar_url: avatarUrl };
