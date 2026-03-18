@@ -761,28 +761,23 @@ async function inviteUser() {
   setBtnLoading('btn-invite', true, 'Criando acesso...');
   clearAlert('invite-alert');
 
-  // Create user with Supabase Admin (using service role is ideal, but here we use signUp)
-  const { data, error } = await sb.auth.signUp({ email, password });
+  // Use secure server-side function to create user
+  const { data, error } = await sb.rpc('create_user', {
+    user_email: email,
+    user_password: password,
+    user_name: name,
+    user_role: role,
+    user_company_id: company
+  });
+
+  setBtnLoading('btn-invite', false, 'Criar acesso e notificar');
 
   if (error) {
-    setBtnLoading('btn-invite', false, 'Criar acesso e notificar');
     showAlert('invite-alert','error','Erro ao criar usuário: ' + error.message);
     return;
   }
 
-  if (data.user) {
-    // Create profile
-    await sb.from('profiles').insert({
-      id: data.user.id,
-      full_name: name,
-      role: role,
-      company_id: company
-    });
-  }
-
-  setBtnLoading('btn-invite', false, 'Criar acesso e notificar');
-  showAlert('invite-alert','success',`Acesso criado para ${name}! O usuário pode fazer login com o e-mail ${email}.`);
-
+  showAlert('invite-alert','success',`Acesso criado para ${name}! Login: ${email}`);
   document.getElementById('invite-email').value = '';
   document.getElementById('invite-name').value = '';
   document.getElementById('invite-password').value = '';
