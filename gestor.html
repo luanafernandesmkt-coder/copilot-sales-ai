@@ -530,8 +530,11 @@ window.addEventListener('load', async () => {
 
   const name = profile.full_name || currentUser.email.split('@')[0];
   document.getElementById('user-name').textContent = name;
-  document.getElementById('user-initials').textContent = name.substring(0,2).toUpperCase();
+  document.getElementById('user-initials-text').textContent = name.substring(0,2).toUpperCase();
   document.getElementById('company-name').textContent = profile.companies?.name || '';
+
+  if (profile.avatar_url) applyAvatar(profile.avatar_url + '?t=' + Date.now());
+  await loadCompanyLogo();
 
   await loadTeam();
   await loadDashboard();
