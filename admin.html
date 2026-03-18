@@ -635,11 +635,103 @@ async function saveEmpresa() {
   populateCompanySelect();
 }
 
+// ─── EDIT EMPRESA ───
+async function editEmpresa(id) {
+  const company = companies.find(c => c.id === id);
+  if (!company) return;
+
+  // Fill modal with existing data
+  document.getElementById('emp-name').value = company.name || '';
+  document.getElementById('emp-sector').value = company.sector || '';
+  document.getElementById('emp-tone').value = company.tone || 'profissional';
+
+  // Fill tags
+  tagData.products = company.products || [];
+  tagData.objections = company.objections || [];
+  renderTags('products');
+  renderTags('objections');
+
+  // Show logo preview if exists
+  if (company.logo_url) {
+    document.getElementById('logo-preview').src = company.logo_url;
+    document.getElementById('logo-preview').style.display = 'block';
+    document.getElementById('logo-placeholder').style.display = 'none';
+  }
+
+  // Change save button to update mode
+  const btn = document.getElementById('btn-save-empresa');
+  btn.textContent = 'Salvar alterações';
+  btn.onclick = () => updateEmpresa(id);
+
+  openModal('modal-empresa');
+}
+
+async function updateEmpresa(id) {
+  const name   = document.getElementById('emp-name').value.trim();
+  const sector = document.getElementById('emp-sector').value.trim();
+  const tone   = document.getElementById('emp-tone').value;
+
+  if (!name) { showAlert('empresa-alert','error','Digite o nome da empresa.'); return; }
+
+  setBtnLoading('btn-save-empresa', true, 'Salvando...');
+
+  let logo_url = companies.find(c => c.id === id)?.logo_url || null;
+
+  if (logoFile) {
+    const ext = logoFile.name.split('.').pop();
+    const path = `${name.toLowerCase().replace(/\s+/g,'-')}-${Date.now()}.${ext}`;
+    const { error: uploadError } = await sb.storage.from('logos').upload(path, logoFile, { upsert: true });
+    if (!uploadError) {
+      const { data } = sb.storage.from('logos').getPublicUrl(path);
+      logo_url = data.publicUrl;
+    }
+  }
+
+  const { error } = await sb.from('companies').update({
+    name, sector, tone, logo_url,
+    products: tagData.products,
+    objections: tagData.objections
+  }).eq('id', id);
+
+  setBtnLoading('btn-save-empresa', false, 'Salvar alterações');
+
+  if (error) { showAlert('empresa-alert','error','Erro: ' + error.message); return; }
+
+  closeModal('modal-empresa');
+  logoFile = null;
+  document.getElementById('logo-preview').style.display = 'none';
+  document.getElementById('logo-placeholder').style.display = 'block';
+  tagData = { products: [], objections: [] };
+
+  // Reset button back to create mode
+  const btn = document.getElementById('btn-save-empresa');
+  btn.textContent = 'Salvar empresa';
+  btn.onclick = saveEmpresa;
+
+  await loadCompanies();
+  refreshCompanySelect();
+}
+
 // ─── DELETE EMPRESA ───
 async function deleteEmpresa(id, name) {
   if (!confirm(`Remover a empresa "${name}"? Esta ação não pode ser desfeita.`)) return;
   await sb.from('companies').delete().eq('id', id);
   await loadCompanies();
+  refreshCompanySelect();
+}
+
+// ─── REFRESH COMPANY SELECT ───
+function refreshCompanySelect() {
+  const sel = document.getElementById('invite-company');
+  // Remove all options except first
+  while (sel.options.length > 1) sel.remove(1);
+  // Re-add from updated companies array
+  companies.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
 }
 
 // ─── DELETE USER ───
@@ -713,6 +805,18 @@ function openModal(id) {
 
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
+  // Reset save button to create mode
+  const btn = document.getElementById('btn-save-empresa');
+  if (btn) {
+    btn.textContent = 'Salvar empresa';
+    btn.onclick = saveEmpresa;
+  }
+  tagData = { products: [], objections: [] };
+  logoFile = null;
+  const preview = document.getElementById('logo-preview');
+  const placeholder = document.getElementById('logo-placeholder');
+  if (preview) { preview.style.display = 'none'; preview.src = ''; }
+  if (placeholder) placeholder.style.display = 'block';
 }
 
 // ─── UTILS ───
