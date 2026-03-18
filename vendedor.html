@@ -1174,9 +1174,8 @@ async function saveProfile() {
     const msg = document.getElementById('profile-msg');
     msg.style.display = 'block';
     setTimeout(() => {
-      msg.style.display = 'none';
-      document.getElementById('modal-profile').classList.remove('open');
-    }, 1500);
+      window.location.reload();
+    }, 1200);
 
   } catch(e) {
     alert('Erro inesperado: ' + e.message);
