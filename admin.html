@@ -777,7 +777,18 @@ async function inviteUser() {
     return;
   }
 
-  showAlert('invite-alert','success',`Acesso criado para ${name}! Login: ${email}`);
+  // Send welcome email
+  try {
+    await fetch('/api/send-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name, password, role })
+    });
+    showAlert('invite-alert','success',`Acesso criado para ${name}! Email enviado para ${email} com as credenciais.`);
+  } catch(e) {
+    showAlert('invite-alert','success',`Acesso criado para ${name}! Login: ${email} · Senha: ${password}`);
+  }
+
   document.getElementById('invite-email').value = '';
   document.getElementById('invite-name').value = '';
   document.getElementById('invite-password').value = '';
