@@ -9,10 +9,7 @@ export default async function handler(req, res) {
   const { email, name, password, role } = req.body || {};
 
   if (!email || !name || !password) {
-    return res.status(400).json({ 
-      error: 'Dados incompletos', 
-      received: JSON.stringify({ email: !!email, name: !!name, password: !!password })
-    });
+    return res.status(400).json({ error: 'Dados incompletos' });
   }
 
   const roleLabel = role === 'gestor' ? 'Gestor' : 'Vendedor';
@@ -22,7 +19,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'RESEND_API_KEY não configurada no Vercel' });
   }
 
-  const html = `<html><body><h2>Olá ${name}!</h2><p>Você foi convidado como ${roleLabel}.</p><p><b>Email:</b> ${email}</p><p><b>Senha:</b> ${password}</p><a href="https://copilot-sales-ai.vercel.app">Acessar plataforma</a></body></html>`;
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#0A0810;font-family:Arial,sans-serif"><div style="max-width:520px;margin:40px auto;background:#12101C;border:1px solid rgba(255,255,255,0.08);border-radius:20px;overflow:hidden"><div style="background:linear-gradient(135deg,#73579C,#E8409A);padding:32px;text-align:center"><div style="font-size:28px;font-weight:800;color:white">Copilot Sales AI</div><div style="font-size:14px;color:rgba(255,255,255,0.8);margin-top:6px">Powered by LuLab Creative Marketing</div></div><div style="padding:32px"><div style="font-size:22px;font-weight:700;color:white;margin-bottom:8px">Olá, ${name}! 👋</div><div style="font-size:14px;color:#9090A8;line-height:1.6;margin-bottom:24px">Você foi convidado para acessar o <strong style="color:#9B7EC8">Copilot Sales AI</strong> como <strong style="color:white">${roleLabel}</strong>.</div><div style="background:rgba(115,87,156,0.1);border:1px solid rgba(115,87,156,0.3);border-radius:12px;padding:20px;margin-bottom:24px"><div style="font-size:11px;font-weight:600;color:#9B7EC8;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">Suas credenciais de acesso</div><div style="margin-bottom:10px"><div style="font-size:11px;color:#9090A8">Email</div><div style="font-size:15px;font-weight:600;color:white">${email}</div></div><div><div style="font-size:11px;color:#9090A8">Senha</div><div style="font-size:15px;font-weight:600;color:white">${password}</div></div></div><a href="https://copilot-sales-ai.vercel.app" style="display:block;background:linear-gradient(135deg,#73579C,#E8409A);color:white;text-decoration:none;text-align:center;padding:14px;border-radius:12px;font-size:15px;font-weight:700;margin-bottom:24px">Acessar a plataforma →</a></div><div style="padding:20px 32px;border-top:1px solid rgba(255,255,255,0.06);text-align:center"><div style="font-size:12px;color:#555">LuLab Creative Marketing · Copilot Sales AI</div></div></div></body></html>`;
 
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -31,9 +28,9 @@ export default async function handler(req, res) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      from: 'onboarding@resend.dev',
+      from: 'Copilot Sales AI <noreply@lulabcreativemarketing.com>',
       to: [email],
-      subject: `Seu acesso ao Copilot Sales AI, ${name}!`,
+      subject: `Seu acesso ao Copilot Sales AI está pronto, ${name}!`,
       html
     })
   });
