@@ -538,12 +538,26 @@ async function login() {
 
 async function redirectByRole(userId) {
   try {
-    const { data: profile } = await sb.from('profiles').select('role').eq('id', userId).single();
-    const role = profile?.role || 'vendedor';
-    if (role === 'admin') window.location.href = 'admin.html';
-    else if (role === 'gestor') window.location.href = 'gestor.html';
+    const { data: profile, error } = await sb
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+    
+    console.log('Profile:', profile, 'Error:', error);
+    
+    if (error || !profile) {
+      window.location.href = 'vendedor.html';
+      return;
+    }
+
+    if (profile.role === 'admin') window.location.href = 'admin.html';
+    else if (profile.role === 'gestor') window.location.href = 'gestor.html';
     else window.location.href = 'vendedor.html';
-  } catch(e) { window.location.href = 'vendedor.html'; }
+  } catch(e) { 
+    console.error('Redirect error:', e);
+    window.location.href = 'vendedor.html'; 
+  }
 }
 
 async function sendReset() {
