@@ -523,11 +523,8 @@ window.addEventListener('load', async () => {
   if (!session) { window.location.href = 'index.html'; return; }
   currentUser = session.user;
 
-  const { data: profile } = await sb.from('profiles').select('*, companies(name)').eq('id', currentUser.id).single();
-  if (!profile || (profile.role !== 'gestor' && profile.role !== 'admin')) {
-    window.location.href = 'index.html'; return;
-  }
-  userProfile = profile;
+const { data: profile, error: profileError } = await sb.from('profiles').select('*, companies(name)').eq('id', currentUser.id).single();
+alert('ID: ' + currentUser.id + '\nProfile: ' + JSON.stringify(profile) + '\nErro: ' + JSON.stringify(profileError));
 
   const name = profile.full_name || currentUser.email.split('@')[0];
   document.getElementById('user-name').textContent = name;
