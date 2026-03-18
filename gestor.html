@@ -533,7 +533,7 @@ window.addEventListener('load', async () => {
   document.getElementById('user-initials-text').textContent = name.substring(0,2).toUpperCase();
   document.getElementById('company-name').textContent = profile.companies?.name || '';
 
-  if (profile.avatar_url) applyAvatar(profile.avatar_url + '?t=' + Date.now());
+  if (profile.avatar_url) setTimeout(() => applyAvatar(profile.avatar_url + '?t=' + Date.now()), 300);
   await loadCompanyLogo();
 
   await loadTeam();
@@ -1041,10 +1041,15 @@ function resetSim(){
 function applyAvatar(url) {
   if (!url) return;
   const container = document.getElementById('user-initials');
-  const txt = document.getElementById('user-initials-text');
   if (!container) return;
-  // Replace content with image directly
-  container.innerHTML = `<img src="${url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" onerror="this.parentElement.innerHTML='<span id=user-initials-text>G</span>'">`;
+  const img = document.createElement('img');
+  img.src = url;
+  img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block';
+  img.onerror = function() {
+    container.innerHTML = '<span id="user-initials-text">G</span>';
+  };
+  container.innerHTML = '';
+  container.appendChild(img);
 }
 
 async function logout() { await sb.auth.signOut(); window.location.href = 'index.html'; }
