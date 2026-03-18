@@ -219,9 +219,9 @@ tr:hover td{background:var(--surface2);cursor:pointer}
       <img id="company-logo-img" src="" alt="Logo" style="max-width:120px;max-height:40px;object-fit:contain;filter:brightness(0) invert(1);opacity:0.8">
     </div>
     <div class="user-info" style="cursor:pointer" onclick="openProfileModal()">
-      <div class="user-avatar" id="user-initials" style="overflow:hidden;flex-shrink:0">
-        <img id="user-avatar-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none;border-radius:50%">
-        <span id="user-initials-text">G</span>
+      <div class="user-avatar" id="user-initials" style="overflow:hidden;flex-shrink:0;position:relative;padding:0">
+        <img id="user-avatar-img" src="" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:50%;display:none;z-index:2">
+        <span id="user-initials-text" style="position:relative;z-index:1">G</span>
       </div>
       <div>
         <div style="font-size:12px;font-weight:500;color:var(--lgray)" id="user-name">Gestor</div>
@@ -1065,12 +1065,12 @@ async function logout() { await sb.auth.signOut(); window.location.href = 'index
 
 <!-- FLOATING BUTTONS -->
 <div class="floating-btns">
-  <button class="fab" onclick="toggleWidget('conv-widget','calc-widget')" title="Conversor Real/Dólar">💱</button>
-  <button class="fab" onclick="toggleWidget('calc-widget','conv-widget')" title="Calculadora">🧮</button>
+  <button class="fab" onclick="toggleWidget('conv-widget','calc-widget')" title="Conversor Real/Dólar"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="9" stroke="white" stroke-width="1.8"/><path d="M11 5.5V7M11 15v1.5M8.5 8.8C8.5 7.8 9.3 7 10.3 7h2.2a1.5 1.5 0 010 3H9.8a1.5 1.5 0 000 3H12c1 0 1.8.8 1.8 1.8" stroke="white" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+  <button class="fab" onclick="toggleWidget('calc-widget','conv-widget')" title="Calculadora"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="18" height="18" rx="3.5" stroke="white" stroke-width="1.8"/><rect x="5" y="5" width="12" height="3.5" rx="1.5" fill="white"/><circle cx="6.5" cy="12.5" r="1.3" fill="white"/><circle cx="11" cy="12.5" r="1.3" fill="white"/><circle cx="15.5" cy="12.5" r="1.3" fill="white"/><circle cx="6.5" cy="16.5" r="1.3" fill="white"/><circle cx="11" cy="16.5" r="1.3" fill="white"/><rect x="14" y="15.2" width="3" height="2.6" rx="1.3" fill="white"/></svg></button>
 </div>
 
 <div class="float-widget" id="calc-widget">
-  <div class="widget-header"><div class="widget-title">🧮 Calculadora</div><button class="widget-close" onclick="closeWidget('calc-widget')">✕</button></div>
+  <div class="widget-header"><div class="widget-title">Calculadora</div><button class="widget-close" onclick="closeWidget('calc-widget')">✕</button></div>
   <div class="calc-display"><div class="calc-expr" id="calc-expr"></div><div class="calc-result" id="calc-result">0</div></div>
   <div class="calc-grid">
     <button class="calc-btn cb-clear" onclick="calcClear()">C</button>
@@ -1096,11 +1096,15 @@ async function logout() { await sb.auth.signOut(); window.location.href = 'index
 </div>
 
 <div class="float-widget" id="conv-widget">
-  <div class="widget-header"><div class="widget-title">💱 Real / Dólar</div><button class="widget-close" onclick="closeWidget('conv-widget')">✕</button></div>
+  <div class="widget-header"><div class="widget-title">Conversor de Moeda</div><button class="widget-close" onclick="closeWidget('conv-widget')">✕</button></div>
   <div class="conv-rate">Cotação: <span id="conv-rate-val">carregando...</span></div>
-  <div class="conv-field"><div class="conv-label">🇧🇷 Real (BRL)</div><input class="conv-input" id="conv-brl" type="number" placeholder="0,00" oninput="convertBRL()"></div>
-  <div style="text-align:center;font-size:18px;color:#73579C;margin:4px 0">⇅</div>
-  <div class="conv-field"><div class="conv-label">🇺🇸 Dólar (USD)</div><input class="conv-input" id="conv-usd" type="number" placeholder="0,00" oninput="convertUSD()"></div>
+  <div style="display:flex;gap:6px;margin-bottom:12px">
+    <button onclick="setConvDir('brl')" id="btn-brl" style="flex:1;padding:7px;border-radius:8px;border:1px solid rgba(115,87,156,0.5);background:rgba(115,87,156,0.2);color:#c8a8ff;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">🇧🇷 Real → Dólar</button>
+    <button onclick="setConvDir('usd')" id="btn-usd" style="flex:1;padding:7px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#9090A8;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">🇺🇸 Dólar → Real</button>
+  </div>
+  <div class="conv-field"><div class="conv-label" id="conv-from-label">🇧🇷 Real (BRL)</div><input class="conv-input" id="conv-from" type="number" placeholder="0,00" oninput="convertFrom()"></div>
+  <div style="text-align:center;font-size:18px;color:#73579C;margin:4px 0">↓</div>
+  <div class="conv-field"><div class="conv-label" id="conv-to-label">🇺🇸 Dólar (USD)</div><input class="conv-input" id="conv-to" type="number" placeholder="0,00" readonly style="opacity:0.7"></div>
   <div style="font-size:10px;color:#444;text-align:center;margin-top:8px" id="conv-updated">Atualizando...</div>
 </div>
 
@@ -1134,9 +1138,12 @@ async function saveProfile(){
     if(!ue){const{data}=sb.storage.from('avatars').getPublicUrl(path);avatarUrl=data.publicUrl;}
   }
   await sb.from('profiles').update({full_name:name,avatar_url:avatarUrl}).eq('id',currentUser.id);
-  document.getElementById('user-name').textContent=name;
-  document.getElementById('user-initials-text').textContent=name.substring(0,2).toUpperCase();
-  if(avatarUrl){document.getElementById('user-avatar-img').src=avatarUrl;document.getElementById('user-avatar-img').style.display='block';document.getElementById('user-initials-text').style.display='none';}
+  const nameEl=document.getElementById('user-name');
+  const initialsEl=document.getElementById('user-initials-text');
+  const avatarImgEl=document.getElementById('user-avatar-img');
+  if(nameEl)nameEl.textContent=name;
+  if(initialsEl)initialsEl.textContent=name.substring(0,2).toUpperCase();
+  if(avatarUrl&&avatarImgEl){avatarImgEl.src=avatarUrl+'?t='+Date.now();avatarImgEl.style.display='block';if(initialsEl)initialsEl.style.display='none';}
   userProfile={...userProfile,full_name:name,avatar_url:avatarUrl};
   const msg=document.getElementById('profile-msg');msg.style.display='block';
   setTimeout(()=>{msg.style.display='none';document.getElementById('modal-profile').classList.remove('open');},1500);
@@ -1156,8 +1163,29 @@ function calcOp(op){if(op==='±'){calcCurrent=String(-parseFloat(calcCurrent));d
 function calcEquals(chained){if(!calcOp_||calcPrev===null)return;const c=parseFloat(calcCurrent);let r;if(calcOp_==='+')r=calcPrev+c;else if(calcOp_==='-')r=calcPrev-c;else if(calcOp_==='*')r=calcPrev*c;else if(calcOp_==='/')r=c!==0?calcPrev/c:'Erro';if(!chained){document.getElementById('calc-expr').textContent='';calcOp_=null;calcPrev=null;}calcCurrent=String(r);calcNewNum=true;document.getElementById('calc-result').textContent=r==='Erro'?'Erro':parseFloat(calcCurrent).toLocaleString('pt-BR',{maximumFractionDigits:8});}
 function calcClear(){calcCurrent='0';calcOp_=null;calcPrev=null;calcNewNum=true;document.getElementById('calc-result').textContent='0';document.getElementById('calc-expr').textContent='';}
 async function fetchRate(){try{const r=await fetch('https://api.exchangerate-api.com/v4/latest/USD');const d=await r.json();usdRate=d.rates.BRL;document.getElementById('conv-rate-val').textContent='US$ 1 = R$ '+usdRate.toFixed(2);document.getElementById('conv-updated').textContent='Cotação atualizada agora';}catch(e){usdRate=5.75;document.getElementById('conv-rate-val').textContent='US$ 1 ≈ R$ 5,75';document.getElementById('conv-updated').textContent='Usando estimativa';}}
-function convertBRL(){if(!usdRate)return;const b=parseFloat(document.getElementById('conv-brl').value);if(!isNaN(b))document.getElementById('conv-usd').value=(b/usdRate).toFixed(2);else document.getElementById('conv-usd').value='';}
-function convertUSD(){if(!usdRate)return;const u=parseFloat(document.getElementById('conv-usd').value);if(!isNaN(u))document.getElementById('conv-brl').value=(u*usdRate).toFixed(2);else document.getElementById('conv-brl').value='';}
+let convDir='brl';
+function setConvDir(dir){
+  convDir=dir;
+  document.getElementById('conv-from').value='';
+  document.getElementById('conv-to').value='';
+  if(dir==='brl'){
+    document.getElementById('conv-from-label').textContent='🇧🇷 Real (BRL)';
+    document.getElementById('conv-to-label').textContent='🇺🇸 Dólar (USD)';
+    document.getElementById('btn-brl').style.cssText='flex:1;padding:7px;border-radius:8px;border:1px solid rgba(115,87,156,0.5);background:rgba(115,87,156,0.2);color:#c8a8ff;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif';
+    document.getElementById('btn-usd').style.cssText='flex:1;padding:7px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#9090A8;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif';
+  }else{
+    document.getElementById('conv-from-label').textContent='🇺🇸 Dólar (USD)';
+    document.getElementById('conv-to-label').textContent='🇧🇷 Real (BRL)';
+    document.getElementById('btn-usd').style.cssText='flex:1;padding:7px;border-radius:8px;border:1px solid rgba(115,87,156,0.5);background:rgba(115,87,156,0.2);color:#c8a8ff;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif';
+    document.getElementById('btn-brl').style.cssText='flex:1;padding:7px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#9090A8;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif';
+  }
+}
+function convertFrom(){
+  if(!usdRate)return;
+  const val=parseFloat(document.getElementById('conv-from').value);
+  if(!isNaN(val))document.getElementById('conv-to').value=(convDir==='brl'?(val/usdRate):(val*usdRate)).toFixed(2);
+  else document.getElementById('conv-to').value='';
+}
 </script>
 
 </body>
