@@ -287,9 +287,9 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--white);min-
     </div>
     <!-- User Info -->
     <div class="user-info" style="cursor:pointer" onclick="openProfileModal()">
-      <div class="user-avatar" id="user-initials" style="position:relative;overflow:hidden;padding:0;flex-shrink:0">
-        <span id="user-initials-text" style="position:relative;z-index:1">V</span>
-        <img id="user-avatar-img" src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;display:none;z-index:3">
+      <div id="user-initials" style="width:32px;height:32px;border-radius:50%;background:rgba(115,87,156,0.3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#9B7EC8;flex-shrink:0;position:relative;overflow:hidden">
+        <span id="user-initials-text">V</span>
+        <img id="user-avatar-img" src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;display:none">
       </div>
       <div>
         <div style="font-size:12px;font-weight:500;color:var(--lgray)" id="user-name">Vendedor</div>
@@ -646,14 +646,7 @@ window.addEventListener('load', async () => {
   await loadCompanyLogo();
   
   // Load avatar if exists
-  if (userProfile?.avatar_url) {
-    const avImg = document.getElementById('user-avatar-img');
-    const avTxt = document.getElementById('user-initials-text');
-    if (avImg) {
-      avImg.onload = function() { this.style.display = 'block'; if (avTxt) avTxt.style.visibility = 'hidden'; };
-      avImg.src = userProfile.avatar_url + '?t=' + Date.now();
-    }
-  }
+  if (userProfile?.avatar_url) applyAvatar(userProfile.avatar_url + '?t=' + Date.now());
   await loadRecentReports();
   await loadMyReports();
 });
@@ -1002,6 +995,19 @@ function setPage(page,el) {
   if(page==='reports'){loadMyReports();}
 }
 
+
+// ─── LOAD AVATAR ───
+function applyAvatar(url) {
+  if (!url) return;
+  const img = document.getElementById('user-avatar-img');
+  const txt = document.getElementById('user-initials-text');
+  if (!img) return;
+  img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;z-index:10;display:block';
+  img.src = url;
+  img.onerror = function() { this.style.display='none'; if(txt) txt.style.visibility='visible'; };
+  img.onload = function() { if(txt) txt.style.visibility='hidden'; };
+}
+
 async function logout(){ await sb.auth.signOut(); window.location.href='index.html'; }
 </script>
 
@@ -1162,11 +1168,7 @@ async function saveProfile() {
     if (nameEl) nameEl.textContent = name;
     if (initialsEl) initialsEl.textContent = name.substring(0,2).toUpperCase();
 
-    if (avatarUrl && avatarImgEl) {
-      avatarImgEl.onload = function() { this.style.display = 'block'; };
-      avatarImgEl.src = avatarUrl + '?t=' + Date.now();
-      if (initialsEl) initialsEl.style.visibility = 'hidden';
-    }
+    if (avatarUrl) applyAvatar(avatarUrl + '?t=' + Date.now());
 
     userProfile = { ...userProfile, full_name: name, avatar_url: avatarUrl };
     avatarFile = null;
