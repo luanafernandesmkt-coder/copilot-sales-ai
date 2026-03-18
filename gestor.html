@@ -534,6 +534,7 @@ window.addEventListener('load', async () => {
   document.getElementById('user-initials-text').textContent = name.substring(0,2).toUpperCase();
   document.getElementById('company-name').textContent = profile.companies?.name || '';
 
+  alert('avatar_url = ' + profile.avatar_url + '\nimg element = ' + document.getElementById('user-avatar-img'));
   if (profile.avatar_url) {
     const _img = document.getElementById('user-avatar-img');
     const _txt = document.getElementById('user-initials-text');
@@ -541,6 +542,9 @@ window.addEventListener('load', async () => {
       _img.src = profile.avatar_url + '?t=' + Date.now();
       _img.style.display = 'block';
       if (_txt) _txt.style.visibility = 'hidden';
+      alert('foto aplicada!');
+    } else {
+      alert('ERRO: user-avatar-img nao encontrado!');
     }
   }
   await loadCompanyLogo();
