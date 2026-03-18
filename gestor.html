@@ -525,7 +525,6 @@ window.addEventListener('load', async () => {
 
   const { data: profile } = await sb.from('profiles').select('*, companies(name)').eq('id', currentUser.id).single();
   if (!profile || (profile.role !== 'gestor' && profile.role !== 'admin')) {
-    alert('REDIRECIONANDO: role=' + profile?.role + ' profile=' + JSON.stringify(profile));
     window.location.href = 'index.html'; return;
   }
   userProfile = profile;
@@ -533,7 +532,7 @@ window.addEventListener('load', async () => {
   const name = profile.full_name || currentUser.email.split('@')[0];
   document.getElementById('user-name').textContent = name;
   document.getElementById('user-initials-text').textContent = name.substring(0,2).toUpperCase();
-  document.getElementById('company-name').textContent = profile.companies?.name || '';
+  // company-name not in gestor
 
   if (profile.avatar_url) {
     const _img = document.getElementById('user-avatar-img');
