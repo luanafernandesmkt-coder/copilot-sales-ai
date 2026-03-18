@@ -525,6 +525,7 @@ window.addEventListener('load', async () => {
 
 const { data: profile, error: profileError } = await sb.from('profiles').select('*, companies(name)').eq('id', currentUser.id).single();
 alert('ID: ' + currentUser.id + '\nProfile: ' + JSON.stringify(profile) + '\nErro: ' + JSON.stringify(profileError));
+ alert('avatar_url direto: ' + profile?.avatar_url);
 
   const name = profile.full_name || currentUser.email.split('@')[0];
   document.getElementById('user-name').textContent = name;
