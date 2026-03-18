@@ -534,7 +534,15 @@ window.addEventListener('load', async () => {
   document.getElementById('user-initials-text').textContent = name.substring(0,2).toUpperCase();
   document.getElementById('company-name').textContent = profile.companies?.name || '';
 
-  if (profile.avatar_url) setTimeout(() => applyAvatar(profile.avatar_url + '?t=' + Date.now()), 300);
+  if (profile.avatar_url) {
+    const _img = document.getElementById('user-avatar-img');
+    const _txt = document.getElementById('user-initials-text');
+    if (_img) {
+      _img.src = profile.avatar_url + '?t=' + Date.now();
+      _img.style.display = 'block';
+      if (_txt) _txt.style.visibility = 'hidden';
+    }
+  }
   await loadCompanyLogo();
 
   await loadTeam();
@@ -1161,7 +1169,15 @@ async function saveProfile(){
   await sb.from('profiles').update({full_name:name,avatar_url:avatarUrl}).eq('id',currentUser.id);
   const nameEl=document.getElementById('user-name');
   if(nameEl)nameEl.textContent=name;
-  if(avatarUrl) applyAvatar(avatarUrl+'?t='+Date.now());
+  if(avatarUrl) {
+    const _img = document.getElementById('user-avatar-img');
+    const _txt = document.getElementById('user-initials-text');
+    if (_img) {
+      _img.src = avatarUrl + '?t=' + Date.now();
+      _img.style.display = 'block';
+      if (_txt) _txt.style.visibility = 'hidden';
+    }
+  }
   userProfile={...userProfile,full_name:name,avatar_url:avatarUrl};
   const msg=document.getElementById('profile-msg');msg.style.display='block';
   setTimeout(()=>{ window.location.reload(); },1200);
