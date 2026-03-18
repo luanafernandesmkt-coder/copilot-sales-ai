@@ -1141,8 +1141,7 @@ async function saveProfile() {
       if (uploadError) {
         console.error('Upload error:', uploadError);
       } else {
-        const { data } = sb.storage.from('avatars').getPublicUrl(path);
-        avatarUrl = data.publicUrl;
+        avatarUrl = `https://koaesjjxmibetscjwfrn.supabase.co/storage/v1/object/public/avatars/${path}`;
       }
     }
 
