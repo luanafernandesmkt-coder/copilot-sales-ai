@@ -215,6 +215,48 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--white);min-
 
 /* API CONFIG */
 .api-card{background:rgba(115,87,156,0.05);border:1px solid rgba(115,87,156,0.2);border-radius:14px;padding:18px}
+
+/* ─── FLOATING BUTTONS ─── */
+.floating-btns{position:fixed;bottom:28px;right:28px;display:flex;flex-direction:column;gap:12px;z-index:999}
+.fab{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#73579C,#9B7EC8);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 20px rgba(115,87,156,0.5);transition:all 0.2s;color:white}
+.fab:hover{transform:scale(1.1);box-shadow:0 6px 28px rgba(115,87,156,0.7)}
+.fab:active{transform:scale(0.95)}
+
+/* WIDGET */
+.float-widget{position:fixed;bottom:100px;right:28px;background:#12101C;border:1px solid rgba(115,87,156,0.3);border-radius:20px;padding:20px;width:280px;box-shadow:0 8px 40px rgba(0,0,0,0.6);z-index:998;display:none;animation:widgetIn 0.25s ease}
+.float-widget.open{display:block}
+@keyframes widgetIn{from{opacity:0;transform:translateY(10px) scale(0.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+.widget-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.widget-title{font-size:14px;font-weight:700;color:white}
+.widget-close{background:rgba(255,255,255,0.08);border:none;color:#888;font-size:16px;cursor:pointer;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all 0.15s}
+.widget-close:hover{background:rgba(255,255,255,0.15);color:white}
+
+/* CALCULATOR */
+.calc-display{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px 16px;margin-bottom:12px;text-align:right}
+.calc-expr{font-size:11px;color:#666;min-height:16px;margin-bottom:4px}
+.calc-result{font-size:26px;font-weight:700;color:white;font-variant-numeric:tabular-nums}
+.calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.calc-btn{padding:11px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:600;transition:all 0.12s;font-family:Inter,sans-serif}
+.calc-btn:active{transform:scale(0.93)}
+.cb-num{background:rgba(255,255,255,0.07);color:white}
+.cb-num:hover{background:rgba(255,255,255,0.12)}
+.cb-op{background:rgba(115,87,156,0.2);color:#c8a8ff}
+.cb-op:hover{background:rgba(115,87,156,0.35)}
+.cb-eq{background:linear-gradient(135deg,#73579C,#E8409A);color:white}
+.cb-eq:hover{opacity:0.9}
+.cb-clear{background:rgba(231,76,60,0.15);color:#ff9090}
+.cb-clear:hover{background:rgba(231,76,60,0.25)}
+.cb-pct{background:rgba(115,87,156,0.15);color:#c8a8ff}
+
+/* CONVERTER */
+.conv-rate{font-size:11px;color:#666;text-align:center;margin-bottom:12px}
+.conv-rate span{color:#9B7EC8;font-weight:600}
+.conv-row{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.conv-field{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px}
+.conv-label{font-size:10px;color:#666;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.8px}
+.conv-input{background:none;border:none;outline:none;font-size:20px;font-weight:700;color:white;width:100%;font-family:Inter,sans-serif}
+.conv-arrows{text-align:center;font-size:18px;color:#73579C;margin:4px 0}
+.conv-updated{font-size:10px;color:#444;text-align:center;margin-top:8px}
 </style>
 </head>
 <body>
@@ -239,11 +281,19 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--white);min-
   <div class="nav-item" onclick="setPage('config',this)"><span class="nav-icon">⚙</span> Configurações</div>
   <div class="nav-item" onclick="logout()"><span class="nav-icon">🚪</span> Sair</div>
   <div class="sidebar-footer">
-    <div class="user-info">
-      <div class="user-avatar" id="user-initials">V</div>
+    <!-- Company Logo -->
+    <div id="company-logo-wrap" style="margin-bottom:12px;display:none">
+      <img id="company-logo-img" src="" alt="Logo" style="max-width:120px;max-height:40px;object-fit:contain;filter:brightness(0) invert(1);opacity:0.8">
+    </div>
+    <!-- User Info -->
+    <div class="user-info" style="cursor:pointer" onclick="openProfileModal()">
+      <div class="user-avatar" id="user-initials" style="overflow:hidden;flex-shrink:0">
+        <img id="user-avatar-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none;border-radius:50%">
+        <span id="user-initials-text">V</span>
+      </div>
       <div>
         <div style="font-size:12px;font-weight:500;color:var(--lgray)" id="user-name">Vendedor</div>
-        <div style="font-size:10px;color:#555" id="company-name"></div>
+        <div style="font-size:10px;color:#73579C" id="company-name">Editar perfil</div>
       </div>
     </div>
   </div>
@@ -600,6 +650,14 @@ window.addEventListener('load', async () => {
 
 
   await loadMyStats();
+  await loadCompanyLogo();
+  
+  // Load avatar if exists
+  if (userProfile?.avatar_url) {
+    document.getElementById('user-avatar-img').src = userProfile.avatar_url;
+    document.getElementById('user-avatar-img').style.display = 'block';
+    document.getElementById('user-initials-text').style.display = 'none';
+  }
   await loadRecentReports();
   await loadMyReports();
 });
@@ -950,5 +1008,266 @@ function setPage(page,el) {
 
 async function logout(){ await sb.auth.signOut(); window.location.href='index.html'; }
 </script>
+
+
+<!-- PROFILE MODAL -->
+<div class="modal-bg" id="modal-profile">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Meu perfil</div>
+      <button class="modal-close" onclick="document.getElementById('modal-profile').classList.remove('open')">×</button>
+    </div>
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="position:relative;display:inline-block">
+        <div style="width:80px;height:80px;border-radius:50%;background:rgba(115,87,156,0.3);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#9B7EC8;margin:0 auto;overflow:hidden;border:2px solid rgba(115,87,156,0.4)" id="profile-avatar-preview">
+          <img id="profile-avatar-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none">
+          <span id="profile-avatar-initials">V</span>
+        </div>
+        <label for="avatar-upload" style="position:absolute;bottom:0;right:0;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#73579C,#E8409A);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px">📷</label>
+        <input type="file" id="avatar-upload" accept="image/*" style="display:none" onchange="previewAvatar(this)">
+      </div>
+      <div style="font-size:11px;color:#555;margin-top:8px">Clique no ícone para alterar a foto</div>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;font-weight:600;color:var(--lgray);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Nome completo</label>
+      <input type="text" id="profile-name" placeholder="Seu nome" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 14px;font-size:13px;color:white;font-family:Inter,sans-serif;outline:none;width:100%">
+    </div>
+    <div id="profile-msg" style="font-size:12px;color:#80ffb0;margin-bottom:10px;display:none">✓ Perfil salvo com sucesso!</div>
+    <button onclick="saveProfile()" style="background:linear-gradient(135deg,#73579C,#E8409A);border:none;color:white;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;width:100%;font-family:Inter,sans-serif">Salvar perfil</button>
+  </div>
+</div>
+
+<!-- FLOATING BUTTONS -->
+<div class="floating-btns">
+  <button class="fab" onclick="toggleWidget('conv-widget','calc-widget')" title="Conversor Real/Dólar">💱</button>
+  <button class="fab" onclick="toggleWidget('calc-widget','conv-widget')" title="Calculadora">🧮</button>
+</div>
+
+<!-- CALCULATOR WIDGET -->
+<div class="float-widget" id="calc-widget">
+  <div class="widget-header">
+    <div class="widget-title">🧮 Calculadora</div>
+    <button class="widget-close" onclick="closeWidget('calc-widget')">✕</button>
+  </div>
+  <div class="calc-display">
+    <div class="calc-expr" id="calc-expr"></div>
+    <div class="calc-result" id="calc-result">0</div>
+  </div>
+  <div class="calc-grid">
+    <button class="calc-btn cb-clear" onclick="calcClear()">C</button>
+    <button class="calc-btn cb-op" onclick="calcOp('±')">±</button>
+    <button class="calc-btn cb-pct" onclick="calcOp('%')">%</button>
+    <button class="calc-btn cb-op" onclick="calcOp('/')">÷</button>
+    <button class="calc-btn cb-num" onclick="calcNum('7')">7</button>
+    <button class="calc-btn cb-num" onclick="calcNum('8')">8</button>
+    <button class="calc-btn cb-num" onclick="calcNum('9')">9</button>
+    <button class="calc-btn cb-op" onclick="calcOp('*')">×</button>
+    <button class="calc-btn cb-num" onclick="calcNum('4')">4</button>
+    <button class="calc-btn cb-num" onclick="calcNum('5')">5</button>
+    <button class="calc-btn cb-num" onclick="calcNum('6')">6</button>
+    <button class="calc-btn cb-op" onclick="calcOp('-')">−</button>
+    <button class="calc-btn cb-num" onclick="calcNum('1')">1</button>
+    <button class="calc-btn cb-num" onclick="calcNum('2')">2</button>
+    <button class="calc-btn cb-num" onclick="calcNum('3')">3</button>
+    <button class="calc-btn cb-op" onclick="calcOp('+')">+</button>
+    <button class="calc-btn cb-num" onclick="calcNum('0')" style="grid-column:span 2">0</button>
+    <button class="calc-btn cb-num" onclick="calcDot()">.</button>
+    <button class="calc-btn cb-eq" onclick="calcEquals()">=</button>
+  </div>
+</div>
+
+<!-- CONVERTER WIDGET -->
+<div class="float-widget" id="conv-widget">
+  <div class="widget-header">
+    <div class="widget-title">💱 Real / Dólar</div>
+    <button class="widget-close" onclick="closeWidget('conv-widget')">✕</button>
+  </div>
+  <div class="conv-rate">Cotação: <span id="conv-rate-val">carregando...</span></div>
+  <div class="conv-row">
+    <div class="conv-field">
+      <div class="conv-label">🇧🇷 Real (BRL)</div>
+      <input class="conv-input" id="conv-brl" type="number" placeholder="0,00" oninput="convertBRL()">
+    </div>
+    <div class="conv-arrows">⇅</div>
+    <div class="conv-field">
+      <div class="conv-label">🇺🇸 Dólar (USD)</div>
+      <input class="conv-input" id="conv-usd" type="number" placeholder="0,00" oninput="convertUSD()">
+    </div>
+  </div>
+  <div class="conv-updated" id="conv-updated">Atualizando cotação...</div>
+</div>
+
+<script>
+
+// ─── PROFILE ───
+let avatarFile = null;
+
+function openProfileModal() {
+  document.getElementById('profile-name').value = userProfile?.full_name || '';
+  const avatarUrl = userProfile?.avatar_url;
+  if (avatarUrl) {
+    document.getElementById('profile-avatar-img').src = avatarUrl;
+    document.getElementById('profile-avatar-img').style.display = 'block';
+    document.getElementById('profile-avatar-initials').style.display = 'none';
+  }
+  document.getElementById('modal-profile').classList.add('open');
+}
+
+function previewAvatar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 500000) { alert('Foto muito grande. Máximo 500KB.'); return; }
+  avatarFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('profile-avatar-img').src = e.target.result;
+    document.getElementById('profile-avatar-img').style.display = 'block';
+    document.getElementById('profile-avatar-initials').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveProfile() {
+  const name = document.getElementById('profile-name').value.trim();
+  if (!name) { alert('Digite seu nome.'); return; }
+  
+  let avatarUrl = userProfile?.avatar_url || null;
+  
+  if (avatarFile) {
+    const ext = avatarFile.name.split('.').pop();
+    const path = `${currentUser.id}.${ext}`;
+    const { error: uploadError } = await sb.storage.from('avatars').upload(path, avatarFile, { upsert: true });
+    if (!uploadError) {
+      const { data } = sb.storage.from('avatars').getPublicUrl(path);
+      avatarUrl = data.publicUrl;
+    }
+  }
+  
+  await sb.from('profiles').update({ full_name: name, avatar_url: avatarUrl }).eq('id', currentUser.id);
+  
+  // Update UI
+  document.getElementById('user-name').textContent = name;
+  document.getElementById('user-initials-text').textContent = name.substring(0,2).toUpperCase();
+  if (avatarUrl) {
+    document.getElementById('user-avatar-img').src = avatarUrl;
+    document.getElementById('user-avatar-img').style.display = 'block';
+    document.getElementById('user-initials-text').style.display = 'none';
+  }
+  
+  userProfile = { ...userProfile, full_name: name, avatar_url: avatarUrl };
+  
+  const msg = document.getElementById('profile-msg');
+  msg.style.display = 'block';
+  setTimeout(() => { msg.style.display = 'none'; document.getElementById('modal-profile').classList.remove('open'); }, 1500);
+}
+
+async function loadCompanyLogo() {
+  if (!userProfile?.company_id) return;
+  const { data } = await sb.from('companies').select('logo_url,name').eq('id', userProfile.company_id).single();
+  if (data?.logo_url) {
+    document.getElementById('company-logo-img').src = data.logo_url;
+    document.getElementById('company-logo-wrap').style.display = 'block';
+  }
+  if (data?.name) document.getElementById('company-name').textContent = data.name;
+}
+
+// ─── FLOATING WIDGETS ───
+function toggleWidget(id, otherId) {
+  const el = document.getElementById(id);
+  const other = document.getElementById(otherId);
+  other.classList.remove('open');
+  el.classList.toggle('open');
+  if (id === 'conv-widget' && el.classList.contains('open')) fetchRate();
+}
+
+function closeWidget(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// ─── CALCULATOR ───
+let calcExpr = '', calcCurrent = '0', calcOp_ = null, calcPrev = null, calcNewNum = true;
+
+function calcNum(n) {
+  if (calcNewNum) { calcCurrent = n; calcNewNum = false; }
+  else calcCurrent = calcCurrent === '0' ? n : calcCurrent + n;
+  document.getElementById('calc-result').textContent = formatCalc(calcCurrent);
+}
+
+function calcDot() {
+  if (calcNewNum) { calcCurrent = '0.'; calcNewNum = false; }
+  else if (!calcCurrent.includes('.')) calcCurrent += '.';
+  document.getElementById('calc-result').textContent = calcCurrent;
+}
+
+function calcOp(op) {
+  if (op === '±') { calcCurrent = String(-parseFloat(calcCurrent)); document.getElementById('calc-result').textContent = formatCalc(calcCurrent); return; }
+  if (op === '%') { calcCurrent = String(parseFloat(calcCurrent) / 100); document.getElementById('calc-result').textContent = formatCalc(calcCurrent); return; }
+  if (calcOp_ && !calcNewNum) calcEquals(true);
+  calcPrev = parseFloat(calcCurrent);
+  calcOp_ = op;
+  calcNewNum = true;
+  const opSymbols = {'+':'+','-':'−','*':'×','/':'÷'};
+  document.getElementById('calc-expr').textContent = formatCalc(String(calcPrev)) + ' ' + (opSymbols[op]||op);
+}
+
+function calcEquals(chained) {
+  if (!calcOp_ || calcPrev === null) return;
+  const curr = parseFloat(calcCurrent);
+  let result;
+  if (calcOp_ === '+') result = calcPrev + curr;
+  else if (calcOp_ === '-') result = calcPrev - curr;
+  else if (calcOp_ === '*') result = calcPrev * curr;
+  else if (calcOp_ === '/') result = curr !== 0 ? calcPrev / curr : 'Erro';
+  if (!chained) { document.getElementById('calc-expr').textContent = ''; calcOp_ = null; calcPrev = null; }
+  calcCurrent = String(result);
+  calcNewNum = true;
+  document.getElementById('calc-result').textContent = result === 'Erro' ? 'Erro' : formatCalc(calcCurrent);
+}
+
+function calcClear() {
+  calcCurrent = '0'; calcOp_ = null; calcPrev = null; calcNewNum = true;
+  document.getElementById('calc-result').textContent = '0';
+  document.getElementById('calc-expr').textContent = '';
+}
+
+function formatCalc(val) {
+  const n = parseFloat(val);
+  if (isNaN(n)) return val;
+  if (Number.isInteger(n) && !val.includes('.')) return n.toLocaleString('pt-BR');
+  return n.toLocaleString('pt-BR', {maximumFractionDigits:8});
+}
+
+// ─── CONVERTER ───
+let usdRate = null;
+
+async function fetchRate() {
+  try {
+    const r = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+    const d = await r.json();
+    usdRate = d.rates.BRL;
+    document.getElementById('conv-rate-val').textContent = 'US$ 1 = R$ ' + usdRate.toFixed(2);
+    document.getElementById('conv-updated').textContent = 'Cotação atualizada agora';
+  } catch(e) {
+    usdRate = 5.75;
+    document.getElementById('conv-rate-val').textContent = 'US$ 1 ≈ R$ 5,75 (estimado)';
+    document.getElementById('conv-updated').textContent = 'Sem conexão — usando estimativa';
+  }
+}
+
+function convertBRL() {
+  if (!usdRate) return;
+  const brl = parseFloat(document.getElementById('conv-brl').value);
+  if (!isNaN(brl)) document.getElementById('conv-usd').value = (brl / usdRate).toFixed(2);
+  else document.getElementById('conv-usd').value = '';
+}
+
+function convertUSD() {
+  if (!usdRate) return;
+  const usd = parseFloat(document.getElementById('conv-usd').value);
+  if (!isNaN(usd)) document.getElementById('conv-brl').value = (usd * usdRate).toFixed(2);
+  else document.getElementById('conv-brl').value = '';
+}
+</script>
+
 </body>
 </html>
