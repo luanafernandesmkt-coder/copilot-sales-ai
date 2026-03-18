@@ -525,6 +525,7 @@ window.addEventListener('load', async () => {
 
   const { data: profile } = await sb.from('profiles').select('*, companies(name)').eq('id', currentUser.id).single();
   if (!profile || (profile.role !== 'gestor' && profile.role !== 'admin')) {
+    alert('REDIRECIONANDO: role=' + profile?.role + ' profile=' + JSON.stringify(profile));
     window.location.href = 'index.html'; return;
   }
   userProfile = profile;
@@ -534,20 +535,14 @@ window.addEventListener('load', async () => {
   document.getElementById('user-initials-text').textContent = name.substring(0,2).toUpperCase();
   document.getElementById('company-name').textContent = profile.companies?.name || '';
 
-  alert('avatar_url: ' + profile.avatar_url);
   if (profile.avatar_url) {
-    alert('ENTROU NO IF!');
     const _img = document.getElementById('user-avatar-img');
-    alert('img element: ' + _img);
+    const _txt = document.getElementById('user-initials-text');
     if (_img) {
-      _img.src = profile.avatar_url;
+      _img.src = profile.avatar_url + '?t=' + Date.now();
       _img.style.display = 'block';
-      alert('SRC APLICADO!');
-    } else {
-      alert('ERRO: user-avatar-img nao existe!');
+      if (_txt) _txt.style.visibility = 'hidden';
     }
-  } else {
-    alert('avatar_url vazio ou null');
   }
   await loadCompanyLogo();
 
