@@ -1135,7 +1135,7 @@ async function saveProfile(){
     const ext=avatarFile.name.split('.').pop();
     const path=`${currentUser.id}.${ext}`;
     const{error:ue}=await sb.storage.from('avatars').upload(path,avatarFile,{upsert:true});
-    if(!ue){const{data}=sb.storage.from('avatars').getPublicUrl(path);avatarUrl=data.publicUrl;}
+    if(!ue){avatarUrl=`https://koaesjjxmibetscjwfrn.supabase.co/storage/v1/object/public/avatars/${path}`;}
   }
   await sb.from('profiles').update({full_name:name,avatar_url:avatarUrl}).eq('id',currentUser.id);
   const nameEl=document.getElementById('user-name');
