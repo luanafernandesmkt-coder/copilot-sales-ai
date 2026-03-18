@@ -353,6 +353,22 @@ tr:hover td{background:var(--surface2)}
     <div class="field"><label>Nome da empresa</label><input type="text" id="emp-name" placeholder="Ex: Dealer AV"></div>
     <div class="field"><label>Setor</label><input type="text" id="emp-sector" placeholder="Ex: Distribuição AV, SaaS, Varejo..."></div>
     <div class="field">
+      <label>Logo da empresa</label>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:60px;height:60px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+          <img id="logo-preview" src="" alt="" style="width:100%;height:100%;object-fit:contain;display:none">
+          <span id="logo-placeholder" style="font-size:24px">🏢</span>
+        </div>
+        <div style="flex:1">
+          <label for="logo-upload" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--lgray);cursor:pointer;font-size:13px;font-family:Inter,sans-serif;transition:all 0.15s">
+            📁 Escolher logo
+          </label>
+          <input type="file" id="logo-upload" accept="image/*" style="display:none" onchange="previewLogo(this)">
+          <div style="font-size:11px;color:#555;margin-top:5px">PNG ou SVG · máximo 1MB</div>
+        </div>
+      </div>
+    </div>
+    <div class="field">
       <label>Produtos / serviços</label>
       <div class="tag-wrap" id="products-wrap">
         <input class="tag-input" id="product-input" placeholder="Digite e pressione Enter..." onkeydown="addTag(event,'products','product-input')">
@@ -563,6 +579,22 @@ function removeTag(type, idx) {
 }
 
 // ─── SAVE EMPRESA ───
+let logoFile = null;
+
+function previewLogo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 1000000) { alert('Logo muito grande. Máximo 1MB.'); return; }
+  logoFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('logo-preview').src = e.target.result;
+    document.getElementById('logo-preview').style.display = 'block';
+    document.getElementById('logo-placeholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
 async function saveEmpresa() {
   const name    = document.getElementById('emp-name').value.trim();
   const sector  = document.getElementById('emp-sector').value.trim();
@@ -572,8 +604,20 @@ async function saveEmpresa() {
 
   setBtnLoading('btn-save-empresa', true, 'Salvando...');
 
+  let logo_url = null;
+
+  if (logoFile) {
+    const ext = logoFile.name.split('.').pop();
+    const path = `${name.toLowerCase().replace(/\s+/g,'-')}-${Date.now()}.${ext}`;
+    const { error: uploadError } = await sb.storage.from('logos').upload(path, logoFile, { upsert: true });
+    if (!uploadError) {
+      const { data } = sb.storage.from('logos').getPublicUrl(path);
+      logo_url = data.publicUrl;
+    }
+  }
+
   const { error } = await sb.from('companies').insert({
-    name, sector, tone,
+    name, sector, tone, logo_url,
     products: tagData.products,
     objections: tagData.objections
   });
@@ -583,6 +627,9 @@ async function saveEmpresa() {
   if (error) { showAlert('empresa-alert','error','Erro: ' + error.message); return; }
 
   closeModal('modal-empresa');
+  logoFile = null;
+  document.getElementById('logo-preview').style.display = 'none';
+  document.getElementById('logo-placeholder').style.display = 'block';
   tagData = { products: [], objections: [] };
   await loadCompanies();
   populateCompanySelect();
