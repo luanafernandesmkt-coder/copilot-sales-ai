@@ -287,9 +287,9 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--white);min-
     </div>
     <!-- User Info -->
     <div class="user-info" style="cursor:pointer" onclick="openProfileModal()">
-      <div class="user-avatar" id="user-initials" style="overflow:hidden;flex-shrink:0">
-        <img id="user-avatar-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none;border-radius:50%">
-        <span id="user-initials-text">V</span>
+      <div class="user-avatar" id="user-initials" style="overflow:hidden;flex-shrink:0;position:relative;padding:0">
+        <img id="user-avatar-img" src="" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;border-radius:50%;display:none;z-index:2">
+        <span id="user-initials-text" style="position:relative;z-index:1">V</span>
       </div>
       <div>
         <div style="font-size:12px;font-weight:500;color:var(--lgray)" id="user-name">Vendedor</div>
@@ -556,14 +556,7 @@ body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--white);min-
       <div style="font-size:14px;font-weight:600;color:var(--white);margin-bottom:6px">Copiloto configurado e pronto!</div>
       <div style="font-size:13px;color:var(--gray);line-height:1.6">As chaves de IA já estão configuradas pelo administrador. Você não precisa fazer nenhuma configuração — é só usar o copiloto ao vivo!</div>
     </div>
-    <div class="card">
-      <div class="card-title" style="margin-bottom:10px">Como obter as chaves</div>
-      <div style="font-size:13px;color:var(--gray);line-height:1.8">
-        <div>• <strong style="color:var(--lgray)">Claude API:</strong> acesse <span style="color:var(--purple-light)">console.anthropic.com</span> → API Keys → Create Key</div>
-        <div>• <strong style="color:var(--lgray)">OpenAI API:</strong> acesse <span style="color:var(--purple-light)">platform.openai.com</span> → API Keys → Create new secret key</div>
-        <div style="margin-top:8px">Ambas têm créditos gratuitos para começar. O custo médio por reunião é de R$0,35.</div>
-      </div>
-    </div>
+
   </div>
 
 </div>
@@ -654,9 +647,10 @@ window.addEventListener('load', async () => {
   
   // Load avatar if exists
   if (userProfile?.avatar_url) {
-    document.getElementById('user-avatar-img').src = userProfile.avatar_url;
-    document.getElementById('user-avatar-img').style.display = 'block';
-    document.getElementById('user-initials-text').style.display = 'none';
+    const avImg = document.getElementById('user-avatar-img');
+    const avTxt = document.getElementById('user-initials-text');
+    if (avImg) { avImg.src = userProfile.avatar_url + '?t=' + Date.now(); avImg.style.display = 'block'; }
+    if (avTxt) avTxt.style.display = 'none';
   }
   await loadRecentReports();
   await loadMyReports();
@@ -1039,14 +1033,14 @@ async function logout(){ await sb.auth.signOut(); window.location.href='index.ht
 
 <!-- FLOATING BUTTONS -->
 <div class="floating-btns">
-  <button class="fab" onclick="toggleWidget('conv-widget','calc-widget')" title="Conversor Real/Dólar">💱</button>
-  <button class="fab" onclick="toggleWidget('calc-widget','conv-widget')" title="Calculadora">🧮</button>
+  <button class="fab" onclick="toggleWidget('conv-widget','calc-widget')" title="Conversor Real/Dólar"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="9" stroke="white" stroke-width="1.8"/><path d="M11 5.5V7M11 15v1.5M8.5 8.8C8.5 7.8 9.3 7 10.3 7h2.2a1.5 1.5 0 010 3H9.8a1.5 1.5 0 000 3H12c1 0 1.8.8 1.8 1.8" stroke="white" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+  <button class="fab" onclick="toggleWidget('calc-widget','conv-widget')" title="Calculadora"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="18" height="18" rx="3.5" stroke="white" stroke-width="1.8"/><rect x="5" y="5" width="12" height="3.5" rx="1.5" fill="white"/><circle cx="6.5" cy="12.5" r="1.3" fill="white"/><circle cx="11" cy="12.5" r="1.3" fill="white"/><circle cx="15.5" cy="12.5" r="1.3" fill="white"/><circle cx="6.5" cy="16.5" r="1.3" fill="white"/><circle cx="11" cy="16.5" r="1.3" fill="white"/><rect x="14" y="15.2" width="3" height="2.6" rx="1.3" fill="white"/></svg></button>
 </div>
 
 <!-- CALCULATOR WIDGET -->
 <div class="float-widget" id="calc-widget">
   <div class="widget-header">
-    <div class="widget-title">🧮 Calculadora</div>
+    <div class="widget-title">Calculadora</div>
     <button class="widget-close" onclick="closeWidget('calc-widget')">✕</button>
   </div>
   <div class="calc-display">
@@ -1079,19 +1073,23 @@ async function logout(){ await sb.auth.signOut(); window.location.href='index.ht
 <!-- CONVERTER WIDGET -->
 <div class="float-widget" id="conv-widget">
   <div class="widget-header">
-    <div class="widget-title">💱 Real / Dólar</div>
+    <div class="widget-title">Conversor de Moeda</div>
     <button class="widget-close" onclick="closeWidget('conv-widget')">✕</button>
   </div>
   <div class="conv-rate">Cotação: <span id="conv-rate-val">carregando...</span></div>
+  <div style="display:flex;gap:6px;margin-bottom:12px">
+    <button onclick="setConvDir('brl')" id="btn-brl" style="flex:1;padding:7px;border-radius:8px;border:1px solid rgba(115,87,156,0.5);background:rgba(115,87,156,0.2);color:#c8a8ff;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">🇧🇷 Real → Dólar</button>
+    <button onclick="setConvDir('usd')" id="btn-usd" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--gray);font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">🇺🇸 Dólar → Real</button>
+  </div>
   <div class="conv-row">
     <div class="conv-field">
-      <div class="conv-label">🇧🇷 Real (BRL)</div>
-      <input class="conv-input" id="conv-brl" type="number" placeholder="0,00" oninput="convertBRL()">
+      <div class="conv-label" id="conv-from-label">🇧🇷 Real (BRL)</div>
+      <input class="conv-input" id="conv-from" type="number" placeholder="0,00" oninput="convertFrom()">
     </div>
-    <div class="conv-arrows">⇅</div>
+    <div class="conv-arrows">↓</div>
     <div class="conv-field">
-      <div class="conv-label">🇺🇸 Dólar (USD)</div>
-      <input class="conv-input" id="conv-usd" type="number" placeholder="0,00" oninput="convertUSD()">
+      <div class="conv-label" id="conv-to-label">🇺🇸 Dólar (USD)</div>
+      <input class="conv-input" id="conv-to" type="number" placeholder="0,00" readonly style="opacity:0.7">
     </div>
   </div>
   <div class="conv-updated" id="conv-updated">Atualizando cotação...</div>
@@ -1277,18 +1275,42 @@ async function fetchRate() {
   }
 }
 
-function convertBRL() {
-  if (!usdRate) return;
-  const brl = parseFloat(document.getElementById('conv-brl').value);
-  if (!isNaN(brl)) document.getElementById('conv-usd').value = (brl / usdRate).toFixed(2);
-  else document.getElementById('conv-usd').value = '';
+let convDir = 'brl';
+
+function setConvDir(dir) {
+  convDir = dir;
+  document.getElementById('conv-from').value = '';
+  document.getElementById('conv-to').value = '';
+  if (dir === 'brl') {
+    document.getElementById('conv-from-label').textContent = '🇧🇷 Real (BRL)';
+    document.getElementById('conv-to-label').textContent = '🇺🇸 Dólar (USD)';
+    document.getElementById('btn-brl').style.background = 'rgba(115,87,156,0.2)';
+    document.getElementById('btn-brl').style.borderColor = 'rgba(115,87,156,0.5)';
+    document.getElementById('btn-brl').style.color = '#c8a8ff';
+    document.getElementById('btn-usd').style.background = 'transparent';
+    document.getElementById('btn-usd').style.borderColor = 'var(--border)';
+    document.getElementById('btn-usd').style.color = 'var(--gray)';
+  } else {
+    document.getElementById('conv-from-label').textContent = '🇺🇸 Dólar (USD)';
+    document.getElementById('conv-to-label').textContent = '🇧🇷 Real (BRL)';
+    document.getElementById('btn-usd').style.background = 'rgba(115,87,156,0.2)';
+    document.getElementById('btn-usd').style.borderColor = 'rgba(115,87,156,0.5)';
+    document.getElementById('btn-usd').style.color = '#c8a8ff';
+    document.getElementById('btn-brl').style.background = 'transparent';
+    document.getElementById('btn-brl').style.borderColor = 'var(--border)';
+    document.getElementById('btn-brl').style.color = 'var(--gray)';
+  }
 }
 
-function convertUSD() {
+function convertFrom() {
   if (!usdRate) return;
-  const usd = parseFloat(document.getElementById('conv-usd').value);
-  if (!isNaN(usd)) document.getElementById('conv-brl').value = (usd * usdRate).toFixed(2);
-  else document.getElementById('conv-brl').value = '';
+  const val = parseFloat(document.getElementById('conv-from').value);
+  if (!isNaN(val)) {
+    const result = convDir === 'brl' ? (val / usdRate) : (val * usdRate);
+    document.getElementById('conv-to').value = result.toFixed(2);
+  } else {
+    document.getElementById('conv-to').value = '';
+  }
 }
 </script>
 
