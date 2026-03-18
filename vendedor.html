@@ -1130,35 +1130,54 @@ function previewAvatar(input) {
 async function saveProfile() {
   const name = document.getElementById('profile-name').value.trim();
   if (!name) { alert('Digite seu nome.'); return; }
-  
-  let avatarUrl = userProfile?.avatar_url || null;
-  
-  if (avatarFile) {
-    const ext = avatarFile.name.split('.').pop();
-    const path = `${currentUser.id}.${ext}`;
-    const { error: uploadError } = await sb.storage.from('avatars').upload(path, avatarFile, { upsert: true });
-    if (!uploadError) {
-      const { data } = sb.storage.from('avatars').getPublicUrl(path);
-      avatarUrl = data.publicUrl;
+
+  try {
+    let avatarUrl = userProfile?.avatar_url || null;
+
+    if (avatarFile) {
+      const ext = avatarFile.name.split('.').pop();
+      const path = currentUser.id + '.' + ext;
+      const { error: uploadError } = await sb.storage.from('avatars').upload(path, avatarFile, { upsert: true });
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+      } else {
+        const { data } = sb.storage.from('avatars').getPublicUrl(path);
+        avatarUrl = data.publicUrl;
+      }
     }
+
+    const { error } = await sb.from('profiles')
+      .update({ full_name: name, avatar_url: avatarUrl })
+      .eq('id', currentUser.id);
+
+    if (error) {
+      alert('Erro ao salvar perfil: ' + error.message);
+      return;
+    }
+
+    // Update sidebar
+    document.getElementById('user-name').textContent = name;
+    document.getElementById('user-initials-text').textContent = name.substring(0,2).toUpperCase();
+
+    if (avatarUrl) {
+      document.getElementById('user-avatar-img').src = avatarUrl + '?t=' + Date.now();
+      document.getElementById('user-avatar-img').style.display = 'block';
+      document.getElementById('user-initials-text').style.display = 'none';
+    }
+
+    userProfile = { ...userProfile, full_name: name, avatar_url: avatarUrl };
+    avatarFile = null;
+
+    const msg = document.getElementById('profile-msg');
+    msg.style.display = 'block';
+    setTimeout(() => {
+      msg.style.display = 'none';
+      document.getElementById('modal-profile').classList.remove('open');
+    }, 1500);
+
+  } catch(e) {
+    alert('Erro inesperado: ' + e.message);
   }
-  
-  await sb.from('profiles').update({ full_name: name, avatar_url: avatarUrl }).eq('id', currentUser.id);
-  
-  // Update UI
-  document.getElementById('user-name').textContent = name;
-  document.getElementById('user-initials-text').textContent = name.substring(0,2).toUpperCase();
-  if (avatarUrl) {
-    document.getElementById('user-avatar-img').src = avatarUrl;
-    document.getElementById('user-avatar-img').style.display = 'block';
-    document.getElementById('user-initials-text').style.display = 'none';
-  }
-  
-  userProfile = { ...userProfile, full_name: name, avatar_url: avatarUrl };
-  
-  const msg = document.getElementById('profile-msg');
-  msg.style.display = 'block';
-  setTimeout(() => { msg.style.display = 'none'; document.getElementById('modal-profile').classList.remove('open'); }, 1500);
 }
 
 async function loadCompanyLogo() {
