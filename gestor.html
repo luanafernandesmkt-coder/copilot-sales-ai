@@ -1157,10 +1157,7 @@ async function saveProfile(){
   }
   await sb.from('profiles').update({full_name:name,avatar_url:avatarUrl}).eq('id',currentUser.id);
   const nameEl=document.getElementById('user-name');
-  const initialsEl=document.getElementById('user-initials-text');
-  const avatarImgEl=document.getElementById('user-avatar-img');
   if(nameEl)nameEl.textContent=name;
-  if(initialsEl)initialsEl.textContent=name.substring(0,2).toUpperCase();
   if(avatarUrl) applyAvatar(avatarUrl+'?t='+Date.now());
   userProfile={...userProfile,full_name:name,avatar_url:avatarUrl};
   const msg=document.getElementById('profile-msg');msg.style.display='block';
