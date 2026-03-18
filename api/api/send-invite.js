@@ -58,7 +58,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Copilot Sales AI <onboarding@resend.dev>',
+        from: 'Copilot Sales AI <noreply@lulabcreativemarketing.com>',
         to: [email],
         subject: `Seu acesso ao Copilot Sales AI está pronto, ${name}!`,
         html: html
