@@ -1146,7 +1146,7 @@ async function saveProfile(){
   if(avatarUrl&&avatarImgEl){avatarImgEl.onload=function(){this.style.display='block';};avatarImgEl.src=avatarUrl+'?t='+Date.now();if(initialsEl)initialsEl.style.visibility='hidden';}
   userProfile={...userProfile,full_name:name,avatar_url:avatarUrl};
   const msg=document.getElementById('profile-msg');msg.style.display='block';
-  setTimeout(()=>{msg.style.display='none';document.getElementById('modal-profile').classList.remove('open');},1500);
+  setTimeout(()=>{ window.location.reload(); },1200);
 }
 
 async function loadCompanyLogo(){
